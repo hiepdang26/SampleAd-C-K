@@ -1,0 +1,31 @@
+{
+  "project_info": {
+    "project_number": "338498396779",
+    "project_id": "libadios",
+    "storage_bucket": "libadios.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:338498396779:ios:6ac7849c09aa0ed01d472e",
+        "android_client_info": {
+          "package_name": "com.bg.libad.ios"
+        }
+      },
+      "api_key": [
+        {
+          "current_key": "AIzaSyA-V2Gl92ZsYgxIGFAMe79bjdRfnW9dYi0"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 0
+        },
+        "appinvite_service": {
+          "status": 1
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

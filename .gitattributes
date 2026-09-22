@@ -1,0 +1,2 @@
+Assets/BG/IOS-Core-Mediation/Assets/Plugins/iOS/Shared.xcframework/**/Shared filter=lfs diff=lfs merge=lfs -text
+Assets/Firebase/Plugins/x86_64/FirebaseCppApp-13_14_0.bundle filter=lfs diff=lfs merge=lfs -text

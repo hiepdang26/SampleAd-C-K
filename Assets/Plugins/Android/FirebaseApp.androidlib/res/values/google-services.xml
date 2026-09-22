@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@string/gcm_defaultSenderId,@string/google_storage_bucket,@string/project_id,@string/google_api_key,@string/google_crash_reporting_api_key,@string/google_app_id">
+  <string name="gcm_defaultSenderId" translatable="false">246723335206</string>
+  <string name="google_storage_bucket" translatable="false">bgp-012-005-home-clean-2.firebasestorage.app</string>
+  <string name="project_id" translatable="false">bgp-012-005-home-clean-2</string>
+  <string name="google_api_key" translatable="false">AIzaSyBHS3lCpSeP77VsZjRYomaz_l1P1kpbKZ0</string>
+  <string name="google_crash_reporting_api_key" translatable="false">AIzaSyBHS3lCpSeP77VsZjRYomaz_l1P1kpbKZ0</string>
+  <string name="google_app_id" translatable="false">1:246723335206:android:5cc2b1736bb2dcb4d202e7</string>
+</resources>
