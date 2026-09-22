@@ -252,6 +252,7 @@ namespace BG_Library.NET.Mediation.Admob
 		static GoogleMobileAdsConsentController _consentController;
 		public static bool IsCallInit { get; private set; }
 		public static bool IsInitComplete { get; private set; }
+		public static bool CanRequestAds => _consentController != null && _consentController.CanRequestAds;
 
 		// The Google Mobile Ads Unity plugin needs to be run only once.
 		private static bool? _isInitialized;
@@ -391,15 +392,16 @@ namespace BG_Library.NET.Mediation.Admob
 
 						if (canRequest)
 						{
-							RequestIosAppTrackingAuthorizationIfConsentAllowsPersonalizedAds();
-
-							InitializeGoogleMobileAds(() =>
+							RequestIosAppTrackingAuthorizationIfConsentAllowsPersonalizedAds(() =>
 							{
-								IsInitComplete = true;
+								InitializeGoogleMobileAds(() =>
+								{
+									IsInitComplete = true;
 
-								NetFlowDebugSystem.Log(Layer.adcore, Module.med_admob, TITLE_INIT, () => "complete (SDK initialized)");
+									NetFlowDebugSystem.Log(Layer.adcore, Module.med_admob, TITLE_INIT, () => "complete (SDK initialized)");
 
-								onComplete?.Invoke();
+									onComplete?.Invoke();
+								});
 							});
 						}
 						else
@@ -417,12 +419,13 @@ namespace BG_Library.NET.Mediation.Admob
 			}
 		}
 
-		static void RequestIosAppTrackingAuthorizationIfConsentAllowsPersonalizedAds()
+		static void RequestIosAppTrackingAuthorizationIfConsentAllowsPersonalizedAds(Action onComplete)
 		{
 #if UNITY_IOS && !UNITY_EDITOR
 			if (!HasConsentForAtt())
 			{
 				NetFlowDebugSystem.Warn(Layer.adcore, Module.med_admob, TITLE_INIT, () => "ATT skip (personalized consent not granted)");
+				onComplete?.Invoke();
 				return;
 			}
 
@@ -431,13 +434,19 @@ namespace BG_Library.NET.Mediation.Admob
 
 			const int notDetermined = 0;
 			if (status != notDetermined)
+			{
+				onComplete?.Invoke();
 				return;
+			}
 
-			NetFlowDebugSystem.Log(Layer.adcore, Module.med_admob, TITLE_INIT, () => "ATT request fire-and-forget...");
+			NetFlowDebugSystem.Log(Layer.adcore, Module.med_admob, TITLE_INIT, () => "ATT request...");
 			IOSAppTrackingTransparencyBridge.RequestAuthorization(attStatus =>
 			{
 				NetFlowDebugSystem.Log(Layer.adcore, Module.med_admob, TITLE_INIT, () => $"ATT completed status={attStatus}");
+				MobileAdsEventExecutor.ExecuteInUpdate(() => onComplete?.Invoke());
 			});
+#else
+			onComplete?.Invoke();
 #endif
 		}
 

@@ -64,8 +64,12 @@ namespace AppBootstrap.Splash
 
         private async void Start()
         {
-            _ = Loading(0.9f, 30);
             SplashLogger.Log("Bootstrap V2 start");
+            SplashTracking.Tracking("4_admob_start");
+            await WaitAdmobSdk();
+            SplashTracking.Tracking("4_admob_end");
+            SplashLogger.Log("Admob privacy gate completed");
+
             await WaitFirebaseInitialize();
             SplashLogger.Log("Firebase initialized");
             SplashTracking.Tracking("1_firebase_end");
@@ -86,13 +90,19 @@ namespace AppBootstrap.Splash
             LoadRemoteConfiguration();
             SplashLogger.Log("Load remote end");
             SplashTracking.Tracking("4_remote_end");
-            SplashTracking.Tracking("4_admob_start");
-            await WaitAdmobSdk();
-            SplashTracking.Tracking("4_admob_end");
             SplashLogger.Log("Admob available");
+
+            _ = Loading(0.9f, _config.loadingTime);
+            if (!Admob_MediationManager.CanRequestAds)
+            {
+                SplashLogger.Warn("Ad request disabled by consent. Skip splash ads.");
+                SplashTracking.Tracking("5_load_ad_skip_consent");
+                await FinishSplashWithoutAds();
+                return;
+            }
+
             SplashTracking.Tracking("5_load_ad_start");
             SplashLogger.Log("Start load ads");
-            _ = Loading(0.9f, _config.loadingTime);
             await UniTask.WhenAll(WaitNativeSplashAndShowing(), WaitInterstitialsSplash());
             SplashLogger.Log("Start load end");
             SplashTracking.Tracking("5_load_ad_end");
@@ -114,6 +124,22 @@ namespace AppBootstrap.Splash
             await UniTask.Delay(TimeSpan.FromSeconds(_config.delayShowInterstitials), DelayType.DeltaTime);
             await ShowingInterstitialAndNativeAfterInter();
             SplashLogger.Log("Bootstrap End Show Ad");
+            onSplashFinished?.Invoke();
+            SplashTracking.Tracking("6_end_splash");
+            SplashLogger.Log("Bootstrap V2 done");
+        }
+
+        private async UniTask FinishSplashWithoutAds()
+        {
+            await Loading(1f, 0.25f);
+
+            if (_loadToNextScene)
+            {
+                var nextScene = FirstSessionData.IsFirstOpen ? _config.firstOpenNextScene : _config.nextScene;
+                await SceneManager.LoadSceneAsync(nextScene).ToUniTask();
+            }
+
+            SplashLogger.Log("Bootstrap End Without Ads");
             onSplashFinished?.Invoke();
             SplashTracking.Tracking("6_end_splash");
             SplashLogger.Log("Bootstrap V2 done");
