@@ -10,15 +10,25 @@ namespace BG_Library.NET.AdCore.MainIOS
     public static class IOSKMPPostprocess
     {
         private const string FallbackIosDeploymentTarget = "15.0";
-        private const string SupportedPlatforms = "iphoneos iphonesimulator";
+        // Unity's engine libraries (libiPhone-lib.a, baselib.a) are built for the Target SDK only.
+        private const string DeviceSupportedPlatforms = "iphoneos";
+        private const string SimulatorSupportedPlatforms = "iphonesimulator";
         private const string BridgeLogTag = "[ios-bridge]";
         private const string EmbedDynamicPodsPhaseName = "BG Embed iOS Dynamic Pod Frameworks";
         private const string CopyComposeResourcesPhaseName = "BG Copy KMP Compose Resources";
         private const string GoogleMobileAdsUnityPluginLibraryPath = "Libraries/Plugins/iOS/unity-plugin-library.a";
-        private const string SharedXcframeworkAssetPath =
+        private const string SharedXcframeworkPrimaryAssetPath =
+            "BG/IOS-Core-Mediation/Assets/Plugins/iOS/Shared.xcframework";
+        private const string SharedXcframeworkLegacyAssetPath =
             "BG Lib/IOS-Core-Mediation/Assets/Plugins/iOS/Shared.xcframework";
-        private const string NativeBridgeAssetPath =
+        private const string NativeBridgePrimaryAssetPath =
+            "BG/IOS-Core-Mediation/Assets/Plugins/iOS/NativeAdBridge.mm";
+        private const string NativeBridgeLegacyAssetPath =
             "BG Lib/IOS-Core-Mediation/Assets/Plugins/iOS/NativeAdBridge.mm";
+        private const string TrackingTransparencyBridgePrimaryAssetPath =
+            "BG/IOS-Core-Mediation/Assets/Plugins/iOS/BGAppTrackingTransparencyBridge.mm";
+        private const string TrackingTransparencyBridgeLegacyAssetPath =
+            "BG Lib/IOS-Core-Mediation/Assets/Plugins/iOS/BGAppTrackingTransparencyBridge.mm";
         private const string SimulatorGoogleMobileAdsUnityPluginAssetPath =
             "BG Lib/IOS-Core-Mediation/Assets/Plugins/iOS/Simulator/unity-plugin-library-arm64-simulator.a.bytes";
         private const string FirebaseUnityPluginLibraryDirectoryPath = "Libraries/Plugins/iOS/Firebase";
@@ -79,17 +89,20 @@ namespace BG_Library.NET.AdCore.MainIOS
             var project = new PBXProject();
             project.ReadFromFile(projectPath);
             bool isSimulatorExport = IsSimulatorExport(projectPath);
+            string supportedPlatforms = isSimulatorExport ? SimulatorSupportedPlatforms : DeviceSupportedPlatforms;
             string deploymentTarget = ResolveIosDeploymentTarget();
-            LogBridge($"postprocess applying deploymentTarget={deploymentTarget} simulatorExport={isSimulatorExport}");
+            LogBridge(
+                $"postprocess applying deploymentTarget={deploymentTarget} simulatorExport={isSimulatorExport} supportedPlatforms={supportedPlatforms}");
 
-            ApplyIosOnlyBuildSettings(project, project.GetUnityMainTargetGuid(), deploymentTarget);
-            ApplyIosOnlyBuildSettings(project, project.GetUnityFrameworkTargetGuid(), deploymentTarget);
+            ApplyIosOnlyBuildSettings(project, project.GetUnityMainTargetGuid(), deploymentTarget, supportedPlatforms);
+            ApplyIosOnlyBuildSettings(project, project.GetUnityFrameworkTargetGuid(), deploymentTarget, supportedPlatforms);
+            AddRequiredSystemFrameworks(project, project.GetUnityFrameworkTargetGuid());
             AddDynamicPodFrameworkEmbedPhase(project, projectPath, project.GetUnityMainTargetGuid());
             AddKmpComposeResourcesPhase(project, projectPath, project.GetUnityMainTargetGuid());
 
             string gameAssemblyTarget = project.TargetGuidByName("GameAssembly");
             if (!string.IsNullOrEmpty(gameAssemblyTarget))
-                ApplyIosOnlyBuildSettings(project, gameAssemblyTarget, deploymentTarget);
+                ApplyIosOnlyBuildSettings(project, gameAssemblyTarget, deploymentTarget, supportedPlatforms);
 
             project.WriteToFile(projectPath);
             RemoveRedundantDynamicPodFrameworkEmbedPhase(projectPath);
@@ -116,8 +129,15 @@ namespace BG_Library.NET.AdCore.MainIOS
 
         private static void LogBridgeAssetStatus()
         {
-            string sharedPath = Path.Combine(UnityEngine.Application.dataPath, SharedXcframeworkAssetPath);
-            string nativeBridgePath = Path.Combine(UnityEngine.Application.dataPath, NativeBridgeAssetPath);
+            string sharedPath = ResolveFirstExistingAssetPath(
+                SharedXcframeworkPrimaryAssetPath,
+                SharedXcframeworkLegacyAssetPath);
+            string nativeBridgePath = ResolveFirstExistingAssetPath(
+                NativeBridgePrimaryAssetPath,
+                NativeBridgeLegacyAssetPath);
+            string trackingTransparencyBridgePath = ResolveFirstExistingAssetPath(
+                TrackingTransparencyBridgePrimaryAssetPath,
+                TrackingTransparencyBridgeLegacyAssetPath);
 
             if (Directory.Exists(sharedPath))
             {
@@ -140,21 +160,50 @@ namespace BG_Library.NET.AdCore.MainIOS
                 LogBridge($"NativeAdBridge.mm found path={nativeBridgePath}");
             else
                 WarnBridge($"NativeAdBridge.mm missing path={nativeBridgePath}");
+
+            if (File.Exists(trackingTransparencyBridgePath))
+                LogBridge($"BGAppTrackingTransparencyBridge.mm found path={trackingTransparencyBridgePath}");
+            else
+                WarnBridge($"BGAppTrackingTransparencyBridge.mm missing path={trackingTransparencyBridgePath}");
         }
 
-        private static void ApplyIosOnlyBuildSettings(PBXProject project, string targetGuid, string deploymentTarget)
+        private static void ApplyIosOnlyBuildSettings(
+            PBXProject project,
+            string targetGuid,
+            string deploymentTarget,
+            string supportedPlatforms)
         {
             if (string.IsNullOrEmpty(targetGuid))
                 return;
 
             project.SetBuildProperty(targetGuid, "IPHONEOS_DEPLOYMENT_TARGET", deploymentTarget);
-            project.SetBuildProperty(targetGuid, "SUPPORTED_PLATFORMS", SupportedPlatforms);
+            project.SetBuildProperty(targetGuid, "SUPPORTED_PLATFORMS", supportedPlatforms);
             project.SetBuildProperty(targetGuid, "SUPPORTS_MACCATALYST", "NO");
             project.SetBuildProperty(targetGuid, "SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD", "NO");
             project.SetBuildProperty(
                 targetGuid,
                 "LD_RUNPATH_SEARCH_PATHS",
                 "$(inherited) @executable_path/Frameworks @loader_path/Frameworks");
+        }
+
+        private static string ResolveFirstExistingAssetPath(params string[] assetPaths)
+        {
+            foreach (string assetPath in assetPaths)
+            {
+                string fullPath = Path.Combine(UnityEngine.Application.dataPath, assetPath);
+                if (File.Exists(fullPath) || Directory.Exists(fullPath))
+                    return fullPath;
+            }
+
+            return Path.Combine(UnityEngine.Application.dataPath, assetPaths[0]);
+        }
+
+        private static void AddRequiredSystemFrameworks(PBXProject project, string unityFrameworkTargetGuid)
+        {
+            if (string.IsNullOrEmpty(unityFrameworkTargetGuid))
+                return;
+
+            project.AddFrameworkToProject(unityFrameworkTargetGuid, "AppTrackingTransparency.framework", true);
         }
 
         private static string ResolveIosDeploymentTarget()
@@ -199,6 +248,9 @@ namespace BG_Library.NET.AdCore.MainIOS
 
         private static bool IsSimulatorExport(string projectPath)
         {
+            if (PlayerSettings.iOS.sdkVersion == iOSSdkVersion.SimulatorSDK)
+                return true;
+
             if (!File.Exists(projectPath))
                 return false;
 

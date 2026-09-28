@@ -466,6 +466,15 @@ namespace BG_Library.NET.Mediation.Base
             }
         }
 
+        public void OnAdImpressionEvent(string adSource)
+        {
+            using (NetFlowDebugSystem.Flow(Layer.group, Module.fs_group, $"Event.Impression {GroupName}", () => $"adtype={Adtype} adSource={adSource} pos={metric.lastPos}"))
+            {
+                // TrackGroupImpression / TrackAdImpression run on the paid event; tracking here would double count.
+                NetEventSystem.OnFsImpression?.Invoke(MakeInfo(metric.lastPos));
+            }
+        }
+
         public void OnAdClickedEvent(string adSource)
         {
             using (NetFlowDebugSystem.Flow(Layer.group, Module.fs_group, $"Event.Clicked {GroupName}", () => $"adtype={Adtype} pos={metric.lastPos}"))

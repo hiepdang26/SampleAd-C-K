@@ -90,9 +90,27 @@ MonoBehaviour:
     false,\n    \"autoInit\": false\n  }\n}"
   listCustomRemoteConfigs:
   - key: splash_config
-    contentAndroid: '{"loadingTime":25,"nativeSplashGroup":"","nativeSplashShowTime":0,"nativeSplashLoadTimeOut":0,"enableAdmobLayout":false,"interSplashAdUnitId":"ca-app-pub-3940256099942544/4411468910","waitNativeSplashLoad":false,"interLoadAdTimeout":25,"delayShowInterstitials":0.1,"nativeAfterInterId":"ca-app-pub-3940256099942544/3986624511","nativeAfterLayoutGroup":"after_inter","firstOpenNextScene":"SampleScene","nextScene":"SampleScene"}'
-    contentIOS: '{"loadingTime":25,"nativeSplashGroup":"","nativeSplashShowTime":0,"nativeSplashLoadTimeOut":0,"enableAdmobLayout":false,"interSplashAdUnitId":"ca-app-pub-3940256099942544/4411468910","waitNativeSplashLoad":false,"interLoadAdTimeout":25,"delayShowInterstitials":0.1,"nativeAfterInterId":"ca-app-pub-3940256099942544/3986624511","nativeAfterLayoutGroup":"after_inter","firstOpenNextScene":"SampleScene","nextScene":"SampleScene"}'
-    contentCountry: '{"loadingTime":25,"nativeSplashGroup":"","nativeSplashShowTime":0,"nativeSplashLoadTimeOut":0,"enableAdmobLayout":false,"interSplashAdUnitId":"ca-app-pub-3940256099942544/4411468910","waitNativeSplashLoad":false,"interLoadAdTimeout":25,"delayShowInterstitials":0.1,"nativeAfterInterId":"ca-app-pub-3940256099942544/3986624511","nativeAfterLayoutGroup":"after_inter","firstOpenNextScene":"SampleScene","nextScene":"SampleScene"}'
+    contentAndroid: "{\n  \"loadingTime\": 25,\n  \"nativeSplashGroup\": \"native_splash\",\n 
+      \"nativeSplashShowTime\": 5,\n  \"nativeSplashLoadTimeOut\": 20,\n  \"enableAdmobLayout\":
+      false,\n  \"interSplashAdUnitId\": \"ca-app-pub-3940256099942544/4411468910\",\n 
+      \"waitNativeSplashLoad\": false,\n  \"interLoadAdTimeout\": 25,\n  \"delayShowInterstitials\":
+      0.1,\n  \"nativeAfterInterId\": \"ca-app-pub-3940256099942544/3986624511\",\n 
+      \"nativeAfterLayoutGroup\": \"cls\",\n  \"firstOpenNextScene\": \"Intro\",\n 
+      \"nextScene\": \"SampleScene\"\n}"
+    contentIOS: "{\n  \"loadingTime\": 25,\n  \"nativeSplashGroup\": \"native_splash\",\n 
+      \"nativeSplashShowTime\": 5,\n  \"nativeSplashLoadTimeOut\": 20,\n  \"enableAdmobLayout\":
+      false,\n  \"interSplashAdUnitId\": \"ca-app-pub-3940256099942544/4411468910\",\n 
+      \"waitNativeSplashLoad\": false,\n  \"interLoadAdTimeout\": 25,\n  \"delayShowInterstitials\":
+      0.1,\n  \"nativeAfterInterId\": \"ca-app-pub-3940256099942544/3986624511\",\n 
+      \"nativeAfterLayoutGroup\": \"cls\",\n  \"firstOpenNextScene\": \"Intro\",\n 
+      \"nextScene\": \"SampleScene\"\n}"
+    contentCountry: "{\n  \"loadingTime\": 25,\n  \"nativeSplashGroup\": \"native_splash\",\n 
+      \"nativeSplashShowTime\": 5,\n  \"nativeSplashLoadTimeOut\": 20,\n  \"enableAdmobLayout\":
+      false,\n  \"interSplashAdUnitId\": \"ca-app-pub-3940256099942544/4411468910\",\n 
+      \"waitNativeSplashLoad\": false,\n  \"interLoadAdTimeout\": 25,\n  \"delayShowInterstitials\":
+      0.1,\n  \"nativeAfterInterId\": \"ca-app-pub-3940256099942544/3986624511\",\n 
+      \"nativeAfterLayoutGroup\": \"cls\",\n  \"firstOpenNextScene\": \"Intro\",\n 
+      \"nextScene\": \"SampleScene\"\n}"
   - key: first_native_banner_config
     contentAndroid: "{\n  \"activeSceneName\": \"SampleScene\",\n  \"bannerLoops\":
       [\n    {\n      \"isEnabled\": true,\n      \"groupName\": \"native_banner\",\n     

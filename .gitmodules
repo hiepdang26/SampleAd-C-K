@@ -1,0 +1,6 @@
+[submodule "TweenAnimationSystem"]
+	path = TweenAnimationSystem
+	url = https://github.com/EcoTien/TweenAnimationSystem.git
+[submodule "Assets/Eco/TweenAnimationSystem"]
+	path = Assets/Eco/TweenAnimationSystem
+	url = https://github.com/EcoTien/TweenAnimationSystem.git

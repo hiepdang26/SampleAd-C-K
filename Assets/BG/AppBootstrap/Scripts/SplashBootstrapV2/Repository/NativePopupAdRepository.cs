@@ -26,6 +26,8 @@ namespace AppBootstrap.Splash
         public string Position => _position;
         public AdStatus Status => _status;
         public Action<AdStatus> OnAdStatusChanged;
+        /// <summary>Ad SDK recorded the impression (currently raised by the iOS bridge only).</summary>
+        public Action<NativeAdInfo> OnAdImpression;
 
         public NativePopupAdRepository(string position, string adUnitId, PULayout layout)
         {
@@ -43,6 +45,9 @@ namespace AppBootstrap.Splash
             _instance.OnONAPopupPaidImpression += OnAdPaidImpression;
             _instance.OnONAPopupDisplayed += OnRectDisplayed;
             _instance.OnONAPopupClosed += OnAdClosed;
+#if boostrap_ios && UNITY_IOS
+            _instance.OnONAPopupImpression += OnAdImpressionRecorded;
+#endif
         }
 
         #region CallBack
@@ -63,6 +68,11 @@ namespace AppBootstrap.Splash
         {
             SplashTracking.Tracking($"5_{_position}_s_s_displayed");
             ChangeStatus(AdStatus.AdDisplayed);
+        }
+
+        private void OnAdImpressionRecorded(NativeAdInfo adInfo)
+        {
+            OnAdImpression?.Invoke(adInfo);
         }
 
         private void OnAdPaidImpression(NativeAdInfo adInfo, NativeAdPaidInfo adPaidInfo)
@@ -121,7 +131,7 @@ namespace AppBootstrap.Splash
         }
 
 #if boostrap_ios && UNITY_IOS
-        private sealed class IosPopupNativeInstance : IOSNativeAdCallbackTarget
+        private sealed class IosPopupNativeInstance : IOSNativeAdCallbackTarget, IOSNativeAdEventTarget
         {
             private const string LayoutName = "mrec_single_manual_06";
 
@@ -138,9 +148,8 @@ namespace AppBootstrap.Splash
             public event Action<NativeAdInfo> OnONAPopupDisplayed;
             public event Action<NativeAdInfo> OnONAPopupClosed;
             public event Action<string, int, string> OnONAPopupFailedToload;
-#pragma warning disable 0067 // The current iOS popup bridge does not emit paid-impression callbacks.
             public event Action<NativeAdInfo, NativeAdPaidInfo> OnONAPopupPaidImpression;
-#pragma warning restore 0067
+            public event Action<NativeAdInfo> OnONAPopupImpression;
 
             public IosPopupNativeInstance(string adUnitId, PULayout layout)
             {
@@ -230,6 +239,37 @@ namespace AppBootstrap.Splash
                         isReady = false;
                         showRequested = false;
                         OnONAPopupClosed?.Invoke(info);
+                        break;
+                }
+            }
+
+            public void HandleNativeAdEvent(string eventName, IOSNativeAdEventData data)
+            {
+                if (data == null)
+                    return;
+
+                var info = CreateAdInfo();
+                if (!string.IsNullOrEmpty(data.adUnitId)) info.adUnitId = data.adUnitId;
+                if (!string.IsNullOrEmpty(data.mediationAdapter)) info.mediationAdapter = data.mediationAdapter;
+                if (!string.IsNullOrEmpty(data.responseId)) info.responseId = data.responseId;
+                if (!string.IsNullOrEmpty(data.adSourceName)) info.adSource = data.adSourceName;
+                info.adSourceId = data.adSourceId ?? string.Empty;
+
+                switch (eventName)
+                {
+                    case IOSNativeAdCallbackNames.Impression:
+                        OnONAPopupImpression?.Invoke(info);
+                        break;
+
+                    case IOSNativeAdCallbackNames.Paid:
+                        info.revenueMicros = data.valueMicros;
+                        info.currencyCode = data.SafeCurrencyCode;
+                        info.precisionType = data.precision;
+                        OnONAPopupPaidImpression?.Invoke(info, new NativeAdPaidInfo
+                        {
+                            revenueMicros = data.valueMicros,
+                            currencyCode = data.SafeCurrencyCode
+                        });
                         break;
                 }
             }

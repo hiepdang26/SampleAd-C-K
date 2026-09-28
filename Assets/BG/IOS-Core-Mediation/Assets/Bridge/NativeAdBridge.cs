@@ -13,9 +13,12 @@ namespace AdsMultiplatform.Unity
 		public const string Failed = IOSNativeAdCallbackNames.Failed;
 		public const string Shown = IOSNativeAdCallbackNames.Shown;
 		public const string OnClosed = IOSNativeAdCallbackNames.OnClosed;
+		public const string Impression = IOSNativeAdCallbackNames.Impression;
+		public const string Clicked = IOSNativeAdCallbackNames.Clicked;
+		public const string Paid = IOSNativeAdCallbackNames.Paid;
 	}
 
-	public sealed class FullscreenNativeAd : IOSNativeAdCallbackTarget
+	public sealed class FullscreenNativeAd : IOSNativeAdCallbackTarget, IOSNativeAdEventTarget
 	{
 		public string InstanceId { get; }
 		public bool EnableReloadAfterShow { get; set; }
@@ -29,6 +32,9 @@ namespace AdsMultiplatform.Unity
 		public event Action Failed;
 		public event Action Shown;
 		public event Action OnClosed;
+		public event Action<IOSNativeAdEventData> Impression;
+		public event Action<IOSNativeAdEventData> Clicked;
+		public event Action<IOSNativeAdEventData> Paid;
 
 		public FullscreenNativeAd(
 			string instanceId = NativeAdBridge.DefaultFullscreenInstanceId,
@@ -304,6 +310,22 @@ namespace AdsMultiplatform.Unity
 					break;
 				case NativeAdCallbackNames.OnClosed:
 					OnClosed?.Invoke();
+					break;
+			}
+		}
+
+		void IOSNativeAdEventTarget.HandleNativeAdEvent(string eventName, IOSNativeAdEventData data)
+		{
+			switch (eventName)
+			{
+				case NativeAdCallbackNames.Impression:
+					Impression?.Invoke(data);
+					break;
+				case NativeAdCallbackNames.Clicked:
+					Clicked?.Invoke(data);
+					break;
+				case NativeAdCallbackNames.Paid:
+					Paid?.Invoke(data);
 					break;
 			}
 		}

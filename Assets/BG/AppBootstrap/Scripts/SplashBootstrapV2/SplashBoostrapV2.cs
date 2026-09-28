@@ -9,6 +9,7 @@ using BG_Library.NET.AdCore.MainIOS;
 #endif
 using BG_Library.NET.AdSystem;
 using BG_Library.NET.API;
+using BG_Library.NET.IOSSDK;
 using BG_Library.NET.Mediation.Admob;
 using CountryRegionCheck;
 using Cysharp.Threading.Tasks;
@@ -28,6 +29,11 @@ namespace AppBootstrap.Splash
         [SerializeField] private NoInternetTracking _noInternetTracking;
         [SerializeField] private PULayout _nativeSplashLayout;
         [SerializeField] private PULayout _nativeSplashAdmobLayout;
+
+        [Tooltip("iOS: registers this device as a Meta Audience Network test device through the KMP bridge. " +
+                 "Only applied in a Development Build or when AdMob Test Device is on in Configs SO.")]
+        [SerializeField] private bool _enableMetaTestMode;
+        [SerializeField] private MetaTestAdType _metaTestAdType = MetaTestAdType.Default;
 
         public UnityEvent onFirebaseInitialized;
         public UnityEvent<float> onProgressChanged;
@@ -60,6 +66,30 @@ namespace AppBootstrap.Splash
             FirstSessionData.CheckAndCacheFirstOpenData();
             FirstSessionData.EndFirstOpenSession();
             DontDestroyOnLoad(gameObject);
+            SetupMetaTestMode();
+        }
+
+        // Meta only serves test ads to requests made after this, so it runs before the AdMob init Start waits for.
+        private void SetupMetaTestMode()
+        {
+#if boostrap_ios && UNITY_IOS && !UNITY_EDITOR
+            bool isTestBuild = Debug.isDebugBuild || NetConfigsSO.Ins.Admob_TestDevice;
+            if (!_enableMetaTestMode || !isTestBuild)
+            {
+                if (_enableMetaTestMode)
+                    SplashLogger.Warn("Meta test mode skipped: needs a Development Build or AdMob Test Device in Configs SO");
+
+                // Meta keeps a registered test device across launches: clear one left by an earlier test build.
+                if (IOSNativeAdBridge.IsMetaTestModeEnabled())
+                    IOSNativeAdBridge.DisableMetaTestMode();
+                return;
+            }
+
+            if (IOSNativeAdBridge.EnableMetaTestMode(_metaTestAdType))
+                SplashLogger.Log($"Meta test mode enabled deviceHash={IOSNativeAdBridge.GetMetaTestDeviceHash()} testAdType={_metaTestAdType}");
+            else
+                SplashLogger.Error("Meta test mode failed, see [ios-bridge] logs");
+#endif
         }
 
         private async void Start()

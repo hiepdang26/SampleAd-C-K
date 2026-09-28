@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace BG_Library.NET.Mediation.IOS
 {
-	public class IOS_RectLogic<T> : IOSNativeAdCallbackTarget
+	public class IOS_RectLogic<T> : IOSNativeAdCallbackTarget, IOSNativeAdEventTarget
 		where T : IOS_RectBaseInfo
 	{
 		private const float DefaultPopupX = 16f;
@@ -328,6 +328,34 @@ namespace BG_Library.NET.Mediation.IOS
 							isPopupDisplayable = false;
 							if (core.IsShowing)
 								core.Hide();
+							break;
+					}
+				}
+			});
+		}
+
+		public void HandleNativeAdEvent(string eventName, IOSNativeAdEventData data)
+		{
+			UnityMainThreadDispatcher.EnqueueCallback(() =>
+			{
+				string adapter = string.IsNullOrEmpty(data?.mediationAdapter) ? BG_ConstValue.mediation_ios : data.mediationAdapter;
+				using (NetFlowDebugSystem.FlowNew(Layer.group, Module.ios_api_rect, $"CB.{eventName} {core.GroupName}",
+					() => $"adtype={core.Adtype} id={idKey} instance={instanceId} adapter={adapter} source={data?.adSourceName}"))
+				{
+					switch (eventName)
+					{
+						case IOSNativeAdCallbackNames.Impression:
+							core.OnAdImpressionEvent(adapter);
+							break;
+
+						case IOSNativeAdCallbackNames.Clicked:
+							core.OnAdClickedEvent(adapter);
+							break;
+
+						case IOSNativeAdCallbackNames.Paid:
+							if (data == null)
+								break;
+							core.OnAdRevenuePaidEvent(data.Revenue, data.SafeCurrencyCode, adapter);
 							break;
 					}
 				}

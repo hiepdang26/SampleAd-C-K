@@ -472,6 +472,16 @@ namespace BG_Library.NET.Mediation.Base
             }
         }
 
+        public void OnAdImpressionEvent(string adSource)
+        {
+            using (NetFlowDebugSystem.FlowNew(Layer.group, Module.rect_group, $"Evt.Impression {GroupName}",
+                () => $"adtype={Adtype} id={Id} source={adSource}"))
+            {
+                // TrackGroupImpression / TrackAdImpression run on the paid event; tracking here would double count.
+                NetEventSystem.OnRectImpression?.Invoke(MakeInfo());
+            }
+        }
+
         public void OnAdRevenuePaidEvent(double rev, string currencyCode, string adSource)
         {
             using (NetFlowDebugSystem.FlowNew(Layer.group, Module.rect_group, $"Evt.Paid {GroupName}",

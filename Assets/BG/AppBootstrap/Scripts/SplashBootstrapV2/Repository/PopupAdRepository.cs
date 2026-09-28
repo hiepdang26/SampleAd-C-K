@@ -10,6 +10,9 @@ namespace AppBootstrap.Splash
 {
     public class PopupAdRepository : IAdRequester
     {
+        // Extra time ShowAsync waits for the impression once the show time is over.
+        private const float ImpressionWaitAfterShowSeconds = 10f;
+
         private readonly string _groupName;
         private AdStatus _status;
         private readonly float _timeShowing;
@@ -18,6 +21,8 @@ namespace AppBootstrap.Splash
         private string _adSourceAdapterClassName;
         private float _timeOut;
         private bool _isTracking;
+        // Sticky: _status can be overwritten by later events before ShowAsync polls it.
+        private bool _hasImpression;
         
         public string GroupName => _groupName;
         public AdStatus Status => _status;
@@ -36,6 +41,7 @@ namespace AppBootstrap.Splash
             NetEventSystem.OnRectLoaded += OnAdLoaded;
             NetEventSystem.OnRectLoadFailed += OnAdLoadFailed;
             NetEventSystem.OnRectPaid += OnAdPaidImpression;
+            NetEventSystem.OnRectImpression += OnAdImpression;
             NetEventSystem.OnRectDisplayed += OnRectDisplayed;
         }
 
@@ -60,11 +66,20 @@ namespace AppBootstrap.Splash
             }
         }
         
+        private void OnAdImpression(AdInfo adInfo)
+        {
+            if (adInfo.group.Equals(_groupName))
+            {
+                _hasImpression = true;
+            }
+        }
+
         private void OnAdPaidImpression(AdInfo adInfo, AdValueInfo adValueInfo)
         {
             if (adInfo.group.Equals(_groupName))
             {
                 if(_isTracking) SplashTracking.Tracking($"5_{_position}_s_s_paid");
+                _hasImpression = true;
                 ChangeStatus(AdStatus.AdPaidImpression);
             }
         }
@@ -107,11 +122,18 @@ namespace AppBootstrap.Splash
 
         public async UniTask ShowAsync(PULayout layout,CancellationToken ct)
         {
+            _hasImpression = false;
             NetCallerAPI.PU_UpdatePos(_groupName, layout);
             NetCallerAPI.PU_Show(_groupName);
-            await UniTask.WhenAll(
-                UniTask.Delay(TimeSpan.FromSeconds(_timeShowing), DelayType.DeltaTime, cancellationToken: ct),
-                UniTask.WaitUntil(() => _status == AdStatus.AdPaidImpression, cancellationToken: ct));
+            await UniTask.Delay(TimeSpan.FromSeconds(_timeShowing), DelayType.DeltaTime, cancellationToken: ct);
+            if (_hasImpression) return;
+
+            // The SDK may never record the impression (e.g. the native view could not be registered),
+            // so wait a bounded time for it instead of blocking the caller forever.
+            var deadline = Time.unscaledTime + ImpressionWaitAfterShowSeconds;
+            await UniTask.WaitUntil(() => _hasImpression || Time.unscaledTime >= deadline, cancellationToken: ct);
+            if (!_hasImpression)
+                SplashLogger.Warn($"Popup {_groupName} got no impression {ImpressionWaitAfterShowSeconds:0.#}s after show time, continue");
         }
 
         public bool IsReady()

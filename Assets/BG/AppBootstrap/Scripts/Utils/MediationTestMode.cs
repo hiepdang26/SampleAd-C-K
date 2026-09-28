@@ -50,6 +50,12 @@ namespace AppBootstrap.Splash
         {
             Debug.LogError("Enable Meta native test mode failed: " + e);
         }
+#elif boostrap_ios && UNITY_IOS && !UNITY_EDITOR
+        // iOS: Meta SDK settings go through shared.xcframework; this device's hash is read and registered automatically.
+        if (BG_Library.NET.IOSSDK.IOSNativeAdBridge.EnableMetaTestMode())
+            Debug.Log("Meta native test mode enabled. deviceHash=" + BG_Library.NET.IOSSDK.IOSNativeAdBridge.GetMetaTestDeviceHash());
+        else
+            Debug.LogError("Enable Meta native test mode failed.");
 #endif
         }
     }

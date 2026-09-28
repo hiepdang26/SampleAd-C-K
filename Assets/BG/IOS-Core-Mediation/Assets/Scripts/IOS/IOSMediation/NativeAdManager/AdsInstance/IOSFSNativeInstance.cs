@@ -7,7 +7,7 @@ using BG_Library.NET.Mediation.Android;
 
 namespace BG_Library.NET.AndroidSDK
 {
-	public class IOSFSNativeInstance : IFSInstance, IOSNativeAdCallbackTarget
+	public class IOSFSNativeInstance : IFSInstance, IOSNativeAdCallbackTarget, IOSNativeAdEventTarget
 	{
 		private static int counter;
 
@@ -37,10 +37,10 @@ namespace BG_Library.NET.AndroidSDK
 		public event Action<AdInfo> OnAdLoadedEvent;
 		public event Action<string, int, string> OnAdLoadFailedEvent;
 		public event Action<AdInfo> OnAdDisplayedEvent;
-#pragma warning disable 0067 // KMP iOS fullscreen bridge currently does not emit click/paid states.
 		public event Action<AdInfo> OnAdClicked;
 		public event Action<AdInfo, AdValue> OnPaidAdImpressionEvent;
-#pragma warning restore 0067
+		/// <summary>Raised when the Google Mobile Ads SDK records the impression (nativeAdDidRecordImpression).</summary>
+		public event Action<AdInfo> OnAdImpressionEvent;
 		public event Action<AdInfo> OnAdHiddenEvent;
 		public event Action<AdInfo, int, string> OnAdShowFailedEvent;
 
@@ -124,6 +124,28 @@ namespace BG_Library.NET.AndroidSDK
 					isReady = false;
 					showRequested = false;
 					OnAdHiddenEvent?.Invoke(info);
+					break;
+			}
+		}
+
+		public void HandleNativeAdEvent(string eventName, IOSNativeAdEventData data)
+		{
+			if (isDisposed)
+				return;
+
+			var info = CreateAdInfo(data);
+			switch (eventName)
+			{
+				case IOSNativeAdCallbackNames.Impression:
+					OnAdImpressionEvent?.Invoke(info);
+					break;
+
+				case IOSNativeAdCallbackNames.Clicked:
+					OnAdClicked?.Invoke(info);
+					break;
+
+				case IOSNativeAdCallbackNames.Paid:
+					OnPaidAdImpressionEvent?.Invoke(info, CreateAdValue(data));
 					break;
 			}
 		}
@@ -231,6 +253,28 @@ namespace BG_Library.NET.AndroidSDK
 				responseId = alias,
 				adSource = BG_ConstValue.mediation_ios,
 				adSourceId = string.Empty
+			};
+		}
+
+		private AdInfo CreateAdInfo(IOSNativeAdEventData data)
+		{
+			return new AdInfo
+			{
+				adUnitId = string.IsNullOrEmpty(data.adUnitId) ? id : data.adUnitId,
+				mediationAdapter = string.IsNullOrEmpty(data.mediationAdapter) ? BG_ConstValue.mediation_ios : data.mediationAdapter,
+				responseId = string.IsNullOrEmpty(data.responseId) ? alias : data.responseId,
+				adSource = string.IsNullOrEmpty(data.adSourceName) ? BG_ConstValue.mediation_ios : data.adSourceName,
+				adSourceId = data.adSourceId ?? string.Empty
+			};
+		}
+
+		private static AdValue CreateAdValue(IOSNativeAdEventData data)
+		{
+			return new AdValue
+			{
+				revenueMicros = data.valueMicros,
+				currencyCode = data.SafeCurrencyCode,
+				precisionType = data.precision
 			};
 		}
 

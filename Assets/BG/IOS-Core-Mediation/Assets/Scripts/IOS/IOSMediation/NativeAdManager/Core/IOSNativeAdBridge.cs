@@ -13,11 +13,73 @@ namespace BG_Library.NET.IOSSDK
 		public const string Failed = "Failed";
 		public const string Shown = "Shown";
 		public const string OnClosed = "onClosed";
+
+		// Tracking events sent by the Google Mobile Ads SDK through shared.xcframework.
+		public const string Impression = "Impression";
+		public const string Clicked = "Clicked";
+		public const string Paid = "Paid";
+
+		public static bool IsAdEvent(string callbackName)
+		{
+			return callbackName == Impression || callbackName == Clicked || callbackName == Paid;
+		}
 	}
 
 	public interface IOSNativeAdCallbackTarget
 	{
 		void HandleNativeCallback(string callbackName);
+	}
+
+	/// <summary>
+	/// Implemented by callback targets that want impression / click / paid events.
+	/// Targets that only implement <see cref="IOSNativeAdCallbackTarget"/> keep receiving state callbacks.
+	/// </summary>
+	public interface IOSNativeAdEventTarget
+	{
+		void HandleNativeAdEvent(string eventName, IOSNativeAdEventData data);
+	}
+
+	/// <summary>Payload of an iOS ad event; field names match IosAdEvent.toUnityJson() in shared.xcframework.</summary>
+	[System.Serializable]
+	public sealed class IOSNativeAdEventData
+	{
+		public string format;
+		public string adUnitId;
+		public long valueMicros;
+		public string currencyCode;
+		public int precision;
+		public string adSourceName;
+		public string adSourceId;
+		public string adSourceInstanceName;
+		public string adSourceInstanceId;
+		public string mediationAdapter;
+		public string responseId;
+
+		public double Revenue => valueMicros / 1000000d;
+		public string SafeCurrencyCode => string.IsNullOrEmpty(currencyCode) ? "USD" : currencyCode;
+	}
+
+	/// <summary>Meta test creative to request while Meta test mode is on. Values match FBAdTestAdType (FBAudienceNetwork).</summary>
+	public enum MetaTestAdType
+	{
+		Default = 0,
+		Image16x9AppInstall = 1,
+		Image16x9Link = 2,
+		Image9x16AppInstall = 3,
+		Image9x16Link = 4,
+		Image1x1AppInstall = 5,
+		Image1x1Link = 6,
+		VideoHd16x9Long46sAppInstall = 7,
+		VideoHd16x9Long46sLink = 8,
+		VideoHd16x9Short15sAppInstall = 9,
+		VideoHd16x9Short15sLink = 10,
+		VideoHd9x16Long39sAppInstall = 11,
+		VideoHd9x16Long39sLink = 12,
+		CarouselImageSquareAppInstall = 13,
+		CarouselImageSquareLink = 14,
+		CarouselVideoSquareLink = 15,
+		Playable = 16,
+		RewardedVideo = 17
 	}
 
 	public static class IOSNativeAdBridge
@@ -179,6 +241,21 @@ namespace BG_Library.NET.IOSSDK
 		private static extern void AdsMultiplatform_FreeCString(System.IntPtr value);
 
 		[DllImport("__Internal")]
+		private static extern void AdsMultiplatform_SetAdEventCallback(AdEventCallback callback);
+
+		[DllImport("__Internal")]
+		private static extern int AdsMultiplatform_EnableMetaTestMode(string additionalDeviceHashesCsv, int testAdType);
+
+		[DllImport("__Internal")]
+		private static extern void AdsMultiplatform_DisableMetaTestMode();
+
+		[DllImport("__Internal")]
+		private static extern int AdsMultiplatform_IsMetaTestModeEnabled();
+
+		[DllImport("__Internal")]
+		private static extern System.IntPtr AdsMultiplatform_GetMetaTestDeviceHash();
+
+		[DllImport("__Internal")]
 		private static extern int AdsMultiplatform_CreateInterstitial(string instanceId, string configJson);
 
 		[DllImport("__Internal")]
@@ -198,6 +275,12 @@ namespace BG_Library.NET.IOSSDK
 		private static extern int AdsMultiplatform_IsInterstitialReady(string instanceId);
 #endif
 
+		private delegate void AdEventCallback(System.IntPtr payload);
+
+		// Held in a static field so the marshalled function pointer stays valid for the app lifetime.
+		private static readonly AdEventCallback AdEventCallbackInstance = OnNativeAdEventDirect;
+		private static bool adEventCallbackRegistered;
+
 		public static void Register(string instanceId, IOSNativeAdCallbackTarget target)
 		{
 			if (target == null)
@@ -205,6 +288,7 @@ namespace BG_Library.NET.IOSSDK
 
 			string safeInstanceId = SafeInstanceId(instanceId);
 			IOSNativeAdCallbackReceiver.EnsureReceiver();
+			EnsureAdEventCallback();
 			Instances[safeInstanceId] = target;
 			BridgeLog("register callback instance=" + safeInstanceId + " target=" + target.GetType().Name);
 		}
@@ -418,6 +502,87 @@ namespace BG_Library.NET.IOSSDK
 #else
 			BridgeUnavailable("IsInterstitialReady", safeInstanceId);
 			return false;
+#endif
+		}
+
+		/// <summary>
+		/// Turns on Meta Audience Network test ads for this device. No hash is needed: the SDK's hash for
+		/// this device (FBAdSettings.testDeviceHash) is read and registered automatically, then the result
+		/// is verified with FBAdSettings.isTestMode. Meta keeps the registration across app launches
+		/// until <see cref="DisableMetaTestMode"/> is called.
+		/// Call before ads are loaded (e.g. before AdCore init): Meta ads already loaded are not test ads.
+		/// Meta only fills real AdMob ad units whose mediation group contains Meta, never Google sample units.
+		/// Test builds only: it also sets FBAdSettings advertiserTrackingEnabled (ignored on iOS 17+).
+		/// </summary>
+		/// <returns>True when Meta reports this device as a test device.</returns>
+		public static bool EnableMetaTestMode(MetaTestAdType testAdType = MetaTestAdType.Default)
+		{
+			BridgeLog("request EnableMetaTestMode testAdType=" + testAdType);
+
+#if UNITY_IOS && !UNITY_EDITOR
+			bool registered = AdsMultiplatform_EnableMetaTestMode(string.Empty, (int)testAdType) != 0;
+			string deviceHash = GetMetaTestDeviceHash();
+			bool testMode = registered && AdsMultiplatform_IsMetaTestModeEnabled() != 0;
+			if (testMode)
+			{
+				BridgeLog("result EnableMetaTestMode success=true currentDeviceHash=" + deviceHash + " testAdType=" + testAdType);
+			}
+			else
+			{
+				BridgeWarn(
+					"result EnableMetaTestMode success=false registered=" + registered +
+					" currentDeviceHash=" + (string.IsNullOrEmpty(deviceHash) ? "(empty)" : deviceHash));
+			}
+			return testMode;
+#else
+			BridgeUnavailable("EnableMetaTestMode", "meta");
+			return false;
+#endif
+		}
+
+		/// <summary>Removes every Meta test device and restores the default test creative.</summary>
+		public static void DisableMetaTestMode()
+		{
+			BridgeLog("request DisableMetaTestMode");
+
+#if UNITY_IOS && !UNITY_EDITOR
+			AdsMultiplatform_DisableMetaTestMode();
+#else
+			BridgeUnavailable("DisableMetaTestMode", "meta");
+#endif
+		}
+
+		/// <summary>True when Meta serves test ads to this device (registered hash, or the iOS simulator).</summary>
+		public static bool IsMetaTestModeEnabled()
+		{
+#if UNITY_IOS && !UNITY_EDITOR
+			bool result = AdsMultiplatform_IsMetaTestModeEnabled() != 0;
+			BridgeLogResult("IsMetaTestModeEnabled", "meta", result);
+			return result;
+#else
+			BridgeUnavailable("IsMetaTestModeEnabled", "meta");
+			return false;
+#endif
+		}
+
+		/// <summary>Meta test device hash of this device (the value to register on other tools, e.g. the ads console).</summary>
+		public static string GetMetaTestDeviceHash()
+		{
+#if UNITY_IOS && !UNITY_EDITOR
+			System.IntPtr hashPtr = System.IntPtr.Zero;
+			try
+			{
+				hashPtr = AdsMultiplatform_GetMetaTestDeviceHash();
+				return PtrToUtf8String(hashPtr) ?? string.Empty;
+			}
+			finally
+			{
+				if (hashPtr != System.IntPtr.Zero)
+					AdsMultiplatform_FreeCString(hashPtr);
+			}
+#else
+			BridgeUnavailable("GetMetaTestDeviceHash", "meta");
+			return string.Empty;
 #endif
 		}
 
@@ -729,6 +894,15 @@ namespace BG_Library.NET.IOSSDK
 
 			string instanceId = SafeInstanceId(payload.Substring(0, separator));
 			string stateName = payload.Substring(separator + 1);
+			string eventJson = null;
+			int eventSeparator = stateName.IndexOf('|');
+			if (eventSeparator >= 0)
+			{
+				// Ad events arrive as "instanceId|Event|json".
+				eventJson = stateName.Substring(eventSeparator + 1);
+				stateName = stateName.Substring(0, eventSeparator);
+			}
+
 			BridgeLog("callback native->unity instance=" + instanceId + " state=" + stateName);
 			if (!Instances.TryGetValue(instanceId, out var target))
 			{
@@ -736,7 +910,98 @@ namespace BG_Library.NET.IOSSDK
 				return;
 			}
 
+			if (IOSNativeAdCallbackNames.IsAdEvent(stateName))
+			{
+				DispatchAdEvent(instanceId, stateName, eventJson, target);
+				return;
+			}
+
 			target.HandleNativeCallback(stateName);
+		}
+
+		/// <summary>
+		/// Impression / click / paid events are delivered through a direct native callback instead of
+		/// UnitySendMessage: a fullscreen ad pauses Unity, and UnitySendMessage is only processed by the
+		/// player loop, so those events would otherwise reach C# only after the ad closes.
+		/// </summary>
+		private static void EnsureAdEventCallback()
+		{
+			if (adEventCallbackRegistered)
+				return;
+
+			adEventCallbackRegistered = true;
+#if UNITY_IOS && !UNITY_EDITOR
+			AdsMultiplatform_SetAdEventCallback(AdEventCallbackInstance);
+			BridgeLog("register direct ad event callback");
+#endif
+		}
+
+		[AOT.MonoPInvokeCallback(typeof(AdEventCallback))]
+		private static void OnNativeAdEventDirect(System.IntPtr payloadPtr)
+		{
+			try
+			{
+				DispatchNativeEvent(PtrToUtf8String(payloadPtr));
+			}
+			catch (System.Exception ex)
+			{
+				// Never let a managed exception unwind into native code.
+				UnityEngine.Debug.LogException(ex);
+			}
+		}
+
+		private static string PtrToUtf8String(System.IntPtr ptr)
+		{
+			if (ptr == System.IntPtr.Zero)
+				return null;
+
+			int length = 0;
+			while (Marshal.ReadByte(ptr, length) != 0)
+				length++;
+
+			var bytes = new byte[length];
+			Marshal.Copy(ptr, bytes, 0, length);
+			return System.Text.Encoding.UTF8.GetString(bytes);
+		}
+
+		private static void DispatchAdEvent(
+			string instanceId,
+			string eventName,
+			string eventJson,
+			IOSNativeAdCallbackTarget target)
+		{
+			if (!(target is IOSNativeAdEventTarget eventTarget))
+			{
+				BridgeLog("ad event ignored instance=" + instanceId + " event=" + eventName + " reason=target_not_event_aware target=" + target.GetType().Name);
+				return;
+			}
+
+			IOSNativeAdEventData data = ParseAdEventData(instanceId, eventName, eventJson);
+			BridgeLog(
+				"ad event native->unity instance=" + instanceId +
+				" event=" + eventName +
+				" format=" + data.format +
+				" adUnitId=" + data.adUnitId +
+				" valueMicros=" + data.valueMicros +
+				" currency=" + data.currencyCode +
+				" source=" + data.adSourceName);
+			eventTarget.HandleNativeAdEvent(eventName, data);
+		}
+
+		private static IOSNativeAdEventData ParseAdEventData(string instanceId, string eventName, string eventJson)
+		{
+			if (string.IsNullOrEmpty(eventJson))
+				return new IOSNativeAdEventData();
+
+			try
+			{
+				return JsonUtility.FromJson<IOSNativeAdEventData>(eventJson) ?? new IOSNativeAdEventData();
+			}
+			catch (System.Exception ex)
+			{
+				BridgeWarn("invalid ad event payload instance=" + instanceId + " event=" + eventName + " error=" + ex.Message);
+				return new IOSNativeAdEventData();
+			}
 		}
 
 		private static void DispatchSyntheticEvent(string instanceId, string stateName)

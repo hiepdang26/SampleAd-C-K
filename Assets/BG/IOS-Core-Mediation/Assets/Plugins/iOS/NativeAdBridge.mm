@@ -62,6 +62,62 @@ static void AdsMultiplatformSendEvent(NSString *instanceId, NSString *stateName)
     UnitySendMessage(AdsMultiplatformCallbackObject, AdsMultiplatformCallbackMethod, payload.UTF8String);
 }
 
+typedef void (*AdsMultiplatformAdEventCallback)(const char *payload);
+
+// Set from C#. A direct call runs managed code immediately, even while Unity is paused for a
+// fullscreen ad; UnitySendMessage would only be delivered on the next player loop (after close).
+static AdsMultiplatformAdEventCallback AdsMultiplatformAdEventCallbackPtr = NULL;
+
+extern "C" void AdsMultiplatform_SetAdEventCallback(AdsMultiplatformAdEventCallback callback) {
+    AdsMultiplatformAdEventCallbackPtr = callback;
+    AdsMultiplatformBridgeLog(@"api=AdEvents direct callback %@", callback != NULL ? @"registered" : @"cleared");
+}
+
+static void AdsMultiplatformDeliverAdEvent(NSString *payload) {
+    AdsMultiplatformAdEventCallback callback = AdsMultiplatformAdEventCallbackPtr;
+    if (callback == NULL) {
+        UnitySendMessage(AdsMultiplatformCallbackObject, AdsMultiplatformCallbackMethod, payload.UTF8String);
+        return;
+    }
+    if ([NSThread isMainThread]) {
+        callback(payload.UTF8String);
+        return;
+    }
+    dispatch_async(dispatch_get_main_queue(), ^{
+        callback(payload.UTF8String);
+    });
+}
+
+// Forwards impression / click / paid events from shared.xcframework as "instanceId|Event|json".
+// Must run on the main thread; every load entry point calls it before loading.
+static void AdsMultiplatformEnsureAdEventListener(void) {
+    static BOOL subscribed = NO;
+    if (subscribed) {
+        return;
+    }
+    if (NSClassFromString(@"SharedIosAdEventCenter") == Nil) {
+        AdsMultiplatformBridgeLog(@"api=AdEvents shared.xcframework unavailable class=SharedIosAdEventCenter");
+        return;
+    }
+    subscribed = YES;
+    [SharedIosAdEventCenter.shared subscribeListener:^(SharedIosAdEvent *event) {
+        NSString *instanceId = event.instanceId ?: @"";
+        NSString *eventName = event.eventName ?: @"";
+        NSString *json = [event toUnityJson] ?: @"{}";
+        AdsMultiplatformBridgeLog(
+            @"api=AdEvents callback instance=%@ event=%@ format=%@ valueMicros=%lld currency=%@",
+            instanceId,
+            eventName,
+            event.format ?: @"",
+            event.valueMicros,
+            event.currencyCode ?: @""
+        );
+        NSString *payload = [NSString stringWithFormat:@"%@|%@|%@", instanceId, eventName, json];
+        AdsMultiplatformDeliverAdEvent(payload);
+    }];
+    AdsMultiplatformBridgeLog(@"api=AdEvents subscribed");
+}
+
 static NSString *AdsMultiplatformString(const char *value) {
     return value == nullptr ? @"" : [NSString stringWithUTF8String:value];
 }
@@ -380,6 +436,7 @@ extern "C" {
             if (!AdsMultiplatformSharedClassAvailable(apiName, @"SharedNativeAdIosBridge", @"single")) {
                 return;
             }
+            AdsMultiplatformEnsureAdEventListener();
             UIViewController *presenter = AdsMultiplatformPresenter();
             if (presenter == nil) {
                 AdsMultiplatformBridgeLog(@"api=%@ failed reason=missing_presenter", apiName);
@@ -415,6 +472,7 @@ extern "C" {
                 AdsMultiplatformSendEvent(nativeInstanceId, @"Failed");
                 return;
             }
+            AdsMultiplatformEnsureAdEventListener();
             UIViewController *presenter = AdsMultiplatformPresenter();
             if (presenter == nil) {
                 AdsMultiplatformBridgeLog(@"api=%@ failed reason=missing_presenter instance=%@", apiName, nativeInstanceId);
@@ -469,6 +527,7 @@ extern "C" {
                 AdsMultiplatformSendEvent(nativeInstanceId, @"Failed");
                 return;
             }
+            AdsMultiplatformEnsureAdEventListener();
             UIViewController *presenter = AdsMultiplatformPresenter();
             if (presenter == nil) {
                 AdsMultiplatformBridgeLog(@"api=%@ failed reason=missing_presenter instance=%@", apiName, nativeInstanceId);
@@ -635,6 +694,7 @@ extern "C" {
                 AdsMultiplatformSendEvent(nativeInstanceId, @"Failed");
                 return;
             }
+            AdsMultiplatformEnsureAdEventListener();
             UIViewController *presenter = AdsMultiplatformPresenter();
             if (presenter == nil) {
                 AdsMultiplatformBridgeLog(@"api=%@ skipped instance=%@ reason=missing_presenter", apiName, nativeInstanceId);
@@ -1105,6 +1165,7 @@ extern "C" {
             if (!AdsMultiplatformSharedClassAvailable(apiName, @"SharedNativeAdIosBridge", nativeInstanceId)) {
                 return;
             }
+            AdsMultiplatformEnsureAdEventListener();
             @try {
                 SharedNativeAdIosBridge *bridge = [[SharedNativeAdIosBridge alloc] init];
                 result = [bridge createInterstitialAlias:nativeInstanceId configJson:nativeConfigJson];
@@ -1131,6 +1192,7 @@ extern "C" {
                 AdsMultiplatformSendEvent(nativeInstanceId, @"Failed");
                 return;
             }
+            AdsMultiplatformEnsureAdEventListener();
             UIViewController *presenter = AdsMultiplatformPreparedPresenter();
             if (presenter == nil) {
                 AdsMultiplatformBridgeLog(@"api=%@ failed reason=missing_presenter instance=%@", apiName, nativeInstanceId);
@@ -1168,6 +1230,7 @@ extern "C" {
                 AdsMultiplatformSendEvent(nativeInstanceId, @"Failed");
                 return;
             }
+            AdsMultiplatformEnsureAdEventListener();
             @try {
                 SharedNativeAdIosBridge *bridge = [[SharedNativeAdIosBridge alloc] init];
                 result = [bridge loadInterstitialRootViewController:AdsMultiplatformPreparedPresenter()
@@ -1245,6 +1308,87 @@ extern "C" {
         });
         AdsMultiplatformBridgeLog(@"api=%@ result instance=%@ success=%@", apiName, nativeInstanceId, result ? @"true" : @"false");
         return result ? 1 : 0;
+    }
+
+    // Meta Audience Network test mode. Registers this device (plus optional extra hashes) as a
+    // Meta test device; call before Meta ads are requested.
+    int AdsMultiplatform_EnableMetaTestMode(const char *additionalDeviceHashesCsv, int testAdType) {
+        NSString *hashes = AdsMultiplatformString(additionalDeviceHashesCsv);
+        NSString *apiName = @"EnableMetaTestMode";
+        __block BOOL result = NO;
+        __block NSString *deviceHash = @"";
+        AdsMultiplatformRunOnMainSync(^{
+            if (!AdsMultiplatformSharedClassAvailable(apiName, @"SharedNativeAdIosBridge", @"meta")) {
+                return;
+            }
+            @try {
+                SharedNativeAdIosBridge *bridge = [[SharedNativeAdIosBridge alloc] init];
+                result = [bridge enableMetaTestModeAdditionalDeviceHashesCsv:hashes testAdType:testAdType];
+                deviceHash = [bridge getCurrentMetaTestDeviceHash] ?: @"";
+            } @catch (NSException *exception) {
+                AdsMultiplatformBridgeException(apiName, @"meta", exception);
+            }
+        });
+        AdsMultiplatformBridgeLog(
+            @"api=%@ result success=%@ currentDeviceHash=%@ testAdType=%d",
+            apiName,
+            result ? @"true" : @"false",
+            deviceHash,
+            testAdType
+        );
+        return result ? 1 : 0;
+    }
+
+    void AdsMultiplatform_DisableMetaTestMode(void) {
+        NSString *apiName = @"DisableMetaTestMode";
+        AdsMultiplatformRunOnMainSync(^{
+            if (!AdsMultiplatformSharedClassAvailable(apiName, @"SharedNativeAdIosBridge", @"meta")) {
+                return;
+            }
+            @try {
+                SharedNativeAdIosBridge *bridge = [[SharedNativeAdIosBridge alloc] init];
+                [bridge disableMetaTestMode];
+            } @catch (NSException *exception) {
+                AdsMultiplatformBridgeException(apiName, @"meta", exception);
+            }
+        });
+        AdsMultiplatformBridgeLog(@"api=%@ dispatched shared call", apiName);
+    }
+
+    int AdsMultiplatform_IsMetaTestModeEnabled(void) {
+        NSString *apiName = @"IsMetaTestModeEnabled";
+        __block BOOL result = NO;
+        AdsMultiplatformRunOnMainSync(^{
+            if (!AdsMultiplatformSharedClassAvailable(apiName, @"SharedNativeAdIosBridge", @"meta")) {
+                return;
+            }
+            @try {
+                SharedNativeAdIosBridge *bridge = [[SharedNativeAdIosBridge alloc] init];
+                result = [bridge isMetaTestModeEnabled];
+            } @catch (NSException *exception) {
+                AdsMultiplatformBridgeException(apiName, @"meta", exception);
+            }
+        });
+        return result ? 1 : 0;
+    }
+
+    // Caller owns the returned string and must release it with AdsMultiplatform_FreeCString.
+    const char *AdsMultiplatform_GetMetaTestDeviceHash(void) {
+        NSString *apiName = @"GetMetaTestDeviceHash";
+        __block NSString *deviceHash = @"";
+        AdsMultiplatformRunOnMainSync(^{
+            if (!AdsMultiplatformSharedClassAvailable(apiName, @"SharedNativeAdIosBridge", @"meta")) {
+                return;
+            }
+            @try {
+                SharedNativeAdIosBridge *bridge = [[SharedNativeAdIosBridge alloc] init];
+                deviceHash = [bridge getCurrentMetaTestDeviceHash] ?: @"";
+            } @catch (NSException *exception) {
+                AdsMultiplatformBridgeException(apiName, @"meta", exception);
+            }
+        });
+        AdsMultiplatformBridgeLog(@"api=%@ result currentDeviceHash=%@", apiName, deviceHash);
+        return AdsMultiplatformCopyCString(deviceHash, "");
     }
 
     void loadNativeAdIOS(const char *adUnitId) {

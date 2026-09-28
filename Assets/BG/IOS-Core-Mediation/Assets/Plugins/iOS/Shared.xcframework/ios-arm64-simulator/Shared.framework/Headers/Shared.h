@@ -6,7 +6,7 @@
 #import <Foundation/NSString.h>
 #import <Foundation/NSValue.h>
 
-@class SharedAdsConsoleAssetVisibilityConfig, SharedAdsConsoleClickAssetConfig, SharedAdsConsoleEnvironment, SharedAdsConsoleFeature, SharedAdsConsoleOrientation, SharedAdsConsolePopupPlacement, SharedAdsConsolePopupPlacementCompanion, SharedAdsConsoleSections, SharedAdsConsoleStatus, SharedAdsConsoleUiState, SharedAdsConsoleViewport, SharedBannerCollapseCountdownStyle, SharedBannerNativeAdComposeCallbacks, SharedBannerNativeAdComposeState, SharedBannerNativeAdConfig, SharedBannerNativeAdError, SharedBannerNativeAdInfo, SharedBannerNativeAdLayoutCatalog, SharedBannerNativeAdReloadPolicy, SharedBannerNativeAdRequest, SharedBannerNativeAdShowOptions, SharedBannerNativeAdSizing, SharedFullscreenLayoutCatalog, SharedFullscreenNativeAdCallbacks, SharedFullscreenNativeAdCloseStyle, SharedFullscreenNativeAdConfig, SharedFullscreenNativeAdControlPhase, SharedFullscreenNativeAdControlState, SharedFullscreenNativeAdError, SharedFullscreenNativeAdInfo, SharedFullscreenNativeAdLayoutCatalog, SharedFullscreenNativeAdMode, SharedFullscreenNativeAdModeCompanion, SharedFullscreenNativeAdRegistry, SharedFullscreenNativeAdRequest, SharedFullscreenNativeAdShowOptions, SharedFullscreenNativeAdShowOptionsCompanion, SharedFullscreenNativeAdState, SharedInterstitialAdConfig, SharedInterstitialAdInfo, SharedInterstitialAdPaidInfo, SharedInterstitialAdRegistry, SharedInterstitialShowOptions, SharedKotlinArray<T>, SharedKotlinEnum<E>, SharedKotlinEnumCompanion, SharedNativeAdLayoutNames, SharedNativeAdLoadResult, SharedNativeAdLoadResultCompanion, SharedNativeAdShowOptions, SharedNativeAdState, SharedNativeAssetVisibilityOptions, SharedNativeClickAssetOptions, SharedPopupNativeAdComposeCallbacks, SharedPopupNativeAdComposeState, SharedPopupNativeAdConfig, SharedPopupNativeAdError, SharedPopupNativeAdInfo, SharedPopupNativeAdLayoutCatalog, SharedPopupNativeAdRequest, UIViewController;
+@class SharedAdsConsoleAssetVisibilityConfig, SharedAdsConsoleClickAssetConfig, SharedAdsConsoleEnvironment, SharedAdsConsoleFeature, SharedAdsConsoleOrientation, SharedAdsConsolePopupPlacement, SharedAdsConsolePopupPlacementCompanion, SharedAdsConsoleSections, SharedAdsConsoleStatus, SharedAdsConsoleUiState, SharedAdsConsoleViewport, SharedBannerCollapseCountdownStyle, SharedBannerNativeAdComposeCallbacks, SharedBannerNativeAdComposeState, SharedBannerNativeAdConfig, SharedBannerNativeAdError, SharedBannerNativeAdInfo, SharedBannerNativeAdLayoutCatalog, SharedBannerNativeAdReloadPolicy, SharedBannerNativeAdRequest, SharedBannerNativeAdShowOptions, SharedBannerNativeAdSizing, SharedFullscreenConsoleLayoutGroup, SharedFullscreenLayoutCatalog, SharedFullscreenNativeAdCallbacks, SharedFullscreenNativeAdCloseStyle, SharedFullscreenNativeAdConfig, SharedFullscreenNativeAdControlPhase, SharedFullscreenNativeAdControlState, SharedFullscreenNativeAdError, SharedFullscreenNativeAdInfo, SharedFullscreenNativeAdLayoutCatalog, SharedFullscreenNativeAdMode, SharedFullscreenNativeAdModeCompanion, SharedFullscreenNativeAdRegistry, SharedFullscreenNativeAdRequest, SharedFullscreenNativeAdShowOptions, SharedFullscreenNativeAdShowOptionsCompanion, SharedFullscreenNativeAdState, SharedInterstitialAdConfig, SharedInterstitialAdInfo, SharedInterstitialAdPaidInfo, SharedInterstitialAdRegistry, SharedInterstitialShowOptions, SharedIosAdEvent, SharedIosAdEventCenter, SharedKotlinArray<T>, SharedKotlinEnum<E>, SharedKotlinEnumCompanion, SharedNativeAdLayoutNames, SharedNativeAdLoadResult, SharedNativeAdLoadResultCompanion, SharedNativeAdShowOptions, SharedNativeAdState, SharedNativeAssetVisibilityOptions, SharedNativeClickAssetOptions, SharedPopupNativeAdComposeCallbacks, SharedPopupNativeAdComposeState, SharedPopupNativeAdConfig, SharedPopupNativeAdError, SharedPopupNativeAdInfo, SharedPopupNativeAdLayoutCatalog, SharedPopupNativeAdRequest, UIViewController;
 
 @protocol SharedFullscreenNativeAdCallback, SharedInterstitialAdCallback, SharedKotlinComparable, SharedKotlinIterator, SharedPlatform;
 
@@ -170,6 +170,46 @@ __attribute__((swift_name("IOSPlatform")))
 @property (readonly) NSString *name __attribute__((swift_name("name")));
 @end
 
+
+/**
+ * A tracking event (impression, click, paid revenue) for one ad instance.
+ * [instanceId] is the alias the host (Unity) used when it loaded the ad.
+ */
+__attribute__((objc_subclassing_restricted))
+__attribute__((swift_name("IosAdEvent")))
+@interface SharedIosAdEvent : SharedBase
+
+/** JSON payload whose field names match Unity's `IOSNativeAdEventData`. */
+- (NSString *)toUnityJson __attribute__((swift_name("toUnityJson()")));
+@property (readonly) NSString *adSourceId __attribute__((swift_name("adSourceId")));
+@property (readonly) NSString *adSourceInstanceId __attribute__((swift_name("adSourceInstanceId")));
+@property (readonly) NSString *adSourceInstanceName __attribute__((swift_name("adSourceInstanceName")));
+@property (readonly) NSString *adSourceName __attribute__((swift_name("adSourceName")));
+@property (readonly) NSString *adUnitId __attribute__((swift_name("adUnitId")));
+@property (readonly) NSString *currencyCode __attribute__((swift_name("currencyCode")));
+@property (readonly) NSString *eventName __attribute__((swift_name("eventName")));
+@property (readonly) NSString *format __attribute__((swift_name("format")));
+@property (readonly) NSString *instanceId __attribute__((swift_name("instanceId")));
+@property (readonly) NSString *mediationAdapter __attribute__((swift_name("mediationAdapter")));
+@property (readonly) int32_t precision __attribute__((swift_name("precision")));
+@property (readonly) NSString *responseId __attribute__((swift_name("responseId")));
+@property (readonly) int64_t valueMicros __attribute__((swift_name("valueMicros")));
+@end
+
+
+/** Forwards ad tracking events to the host app; the Unity bridge subscribes once at startup. */
+__attribute__((objc_subclassing_restricted))
+__attribute__((swift_name("IosAdEventCenter")))
+@interface SharedIosAdEventCenter : SharedBase
++ (instancetype)alloc __attribute__((unavailable));
+
+/** Forwards ad tracking events to the host app; the Unity bridge subscribes once at startup. */
++ (instancetype)allocWithZone:(struct _NSZone *)zone __attribute__((unavailable));
++ (instancetype)iosAdEventCenter __attribute__((swift_name("init()")));
+@property (class, readonly, getter=shared) SharedIosAdEventCenter *shared __attribute__((swift_name("shared")));
+- (void)subscribeListener:(void (^ _Nullable)(SharedIosAdEvent *))listener __attribute__((swift_name("subscribe(listener:)")));
+@end
+
 __attribute__((objc_subclassing_restricted))
 __attribute__((swift_name("NativeAdIosBridge")))
 @interface SharedNativeAdIosBridge : SharedBase
@@ -180,7 +220,16 @@ __attribute__((swift_name("NativeAdIosBridge")))
 - (void)createInterstitialAlias:(NSString *)alias adUnitIdsCsv:(NSString *)adUnitIdsCsv preloadBufferSize:(int32_t)preloadBufferSize autoReload:(BOOL)autoReload __attribute__((swift_name("createInterstitial(alias:adUnitIdsCsv:preloadBufferSize:autoReload:)")));
 - (BOOL)destroyAlias:(NSString *)alias __attribute__((swift_name("destroy(alias:)")));
 - (BOOL)destroyInterstitialAlias:(NSString *)alias __attribute__((swift_name("destroyInterstitial(alias:)")));
+- (void)disableMetaTestMode __attribute__((swift_name("disableMetaTestMode()")));
 - (BOOL)enableMetaTestModeTestDeviceIds:(NSArray<NSString *> *)testDeviceIds __attribute__((swift_name("enableMetaTestMode(testDeviceIds:)")));
+
+/**
+ * Unity entry point: registers this device, plus any hashes in [additionalDeviceHashesCsv]
+ * (separated by `,` `;` or new lines), as Meta Audience Network test devices.
+ * [testAdType] is the raw `FBAdTestAdType` value (0 = default creative).
+ * Call before Meta ads are requested; ads already loaded are not test ads.
+ */
+- (BOOL)enableMetaTestModeAdditionalDeviceHashesCsv:(NSString *)additionalDeviceHashesCsv testAdType:(int32_t)testAdType __attribute__((swift_name("enableMetaTestMode(additionalDeviceHashesCsv:testAdType:)")));
 - (UIViewController *)fullscreenViewControllerInstanceId:(NSString *)instanceId options:(SharedFullscreenNativeAdShowOptions *)options fallbackAdUnitId:(NSString *)fallbackAdUnitId __attribute__((swift_name("fullscreenViewController(instanceId:options:fallbackAdUnitId:)")));
 - (UIViewController *)fullscreenViewControllerInstanceId:(NSString *)instanceId layoutName:(NSString *)layoutName durationSeconds:(double)durationSeconds fallbackAdUnitId:(NSString *)fallbackAdUnitId __attribute__((swift_name("fullscreenViewController(instanceId:layoutName:durationSeconds:fallbackAdUnitId:)")));
 - (UIViewController *)fullscreenViewControllerForUnityInstanceId:(NSString *)instanceId layoutName:(NSString *)layoutName durationSeconds:(double)durationSeconds fallbackAdUnitId:(NSString *)fallbackAdUnitId onClosed:(void (^)(void))onClosed __attribute__((swift_name("fullscreenViewControllerForUnity(instanceId:layoutName:durationSeconds:fallbackAdUnitId:onClosed:)")));
@@ -188,6 +237,7 @@ __attribute__((swift_name("NativeAdIosBridge")))
 - (UIViewController *)fullscreenViewControllerWithAutoCloseInstanceId:(NSString *)instanceId layoutName:(NSString *)layoutName durationSeconds:(double)durationSeconds fallbackAdUnitId:(NSString *)fallbackAdUnitId autoClose:(BOOL)autoClose __attribute__((swift_name("fullscreenViewControllerWithAutoClose(instanceId:layoutName:durationSeconds:fallbackAdUnitId:autoClose:)")));
 - (NSString *)getCurrentMetaTestDeviceHash __attribute__((swift_name("getCurrentMetaTestDeviceHash()")));
 - (BOOL)isInterstitialReadyAlias:(NSString *)alias __attribute__((swift_name("isInterstitialReady(alias:)")));
+- (BOOL)isMetaTestModeEnabled __attribute__((swift_name("isMetaTestModeEnabled()")));
 - (BOOL)isReadyAlias:(NSString *)alias __attribute__((swift_name("isReady(alias:)")));
 - (void)loadAdUnitId:(NSString *)adUnitId rootViewController:(UIViewController *)rootViewController __attribute__((swift_name("load(adUnitId:rootViewController:)")));
 - (void)loadFullscreenInstanceId:(NSString *)instanceId adUnitIdsCsv:(NSString *)adUnitIdsCsv rootViewController:(UIViewController *)rootViewController __attribute__((swift_name("loadFullscreen(instanceId:adUnitIdsCsv:rootViewController:)")));
@@ -672,12 +722,13 @@ __attribute__((swift_name("AdsConsoleStatus")))
 __attribute__((objc_subclassing_restricted))
 __attribute__((swift_name("AdsConsoleUiState")))
 @interface SharedAdsConsoleUiState : SharedBase
-- (instancetype)initWithSelectedFeature:(SharedAdsConsoleFeature *)selectedFeature environment:(SharedAdsConsoleEnvironment *)environment selectedAdUnitId:(NSString *)selectedAdUnitId customAdUnitId:(NSString *)customAdUnitId selectedLayoutName:(NSString *)selectedLayoutName fullscreenMode:(SharedFullscreenNativeAdMode *)fullscreenMode orientation:(SharedAdsConsoleOrientation *)orientation clickAssets:(SharedAdsConsoleClickAssetConfig *)clickAssets assetVisibility:(SharedAdsConsoleAssetVisibilityConfig *)assetVisibility popupPlacement:(SharedAdsConsolePopupPlacement *)popupPlacement timeUpCSeconds:(int32_t)timeUpCSeconds countdownSeconds:(int32_t)countdownSeconds delaySeconds:(int32_t)delaySeconds pauseGameplay:(BOOL)pauseGameplay showTCD:(BOOL)showTCD enableAdComeback:(BOOL)enableAdComeback autoCapture:(BOOL)autoCapture autoClosePopup:(BOOL)autoClosePopup enablePopupCtrOverlay:(BOOL)enablePopupCtrOverlay enableClickOnBannerExpand:(BOOL)enableClickOnBannerExpand metaTestDevices:(NSString *)metaTestDevices metaTestModeEnabled:(BOOL)metaTestModeEnabled metaTestDeviceCount:(int32_t)metaTestDeviceCount __attribute__((swift_name("init(selectedFeature:environment:selectedAdUnitId:customAdUnitId:selectedLayoutName:fullscreenMode:orientation:clickAssets:assetVisibility:popupPlacement:timeUpCSeconds:countdownSeconds:delaySeconds:pauseGameplay:showTCD:enableAdComeback:autoCapture:autoClosePopup:enablePopupCtrOverlay:enableClickOnBannerExpand:metaTestDevices:metaTestModeEnabled:metaTestDeviceCount:)"))) __attribute__((objc_designated_initializer));
+- (instancetype)initWithSelectedFeature:(SharedAdsConsoleFeature *)selectedFeature environment:(SharedAdsConsoleEnvironment *)environment selectedAdUnitId:(NSString *)selectedAdUnitId customAdUnitId:(NSString *)customAdUnitId selectedLayoutName:(NSString *)selectedLayoutName fullscreenMode:(SharedFullscreenNativeAdMode *)fullscreenMode fullscreenLayoutGroup:(SharedFullscreenConsoleLayoutGroup *)fullscreenLayoutGroup orientation:(SharedAdsConsoleOrientation *)orientation clickAssets:(SharedAdsConsoleClickAssetConfig *)clickAssets assetVisibility:(SharedAdsConsoleAssetVisibilityConfig *)assetVisibility popupPlacement:(SharedAdsConsolePopupPlacement *)popupPlacement timeUpCSeconds:(int32_t)timeUpCSeconds countdownSeconds:(int32_t)countdownSeconds delaySeconds:(int32_t)delaySeconds pauseGameplay:(BOOL)pauseGameplay showTCD:(BOOL)showTCD enableAdComeback:(BOOL)enableAdComeback autoCapture:(BOOL)autoCapture autoClosePopup:(BOOL)autoClosePopup enablePopupCtrOverlay:(BOOL)enablePopupCtrOverlay enableClickOnBannerExpand:(BOOL)enableClickOnBannerExpand metaTestDevices:(NSString *)metaTestDevices metaTestModeEnabled:(BOOL)metaTestModeEnabled metaTestDeviceCount:(int32_t)metaTestDeviceCount __attribute__((swift_name("init(selectedFeature:environment:selectedAdUnitId:customAdUnitId:selectedLayoutName:fullscreenMode:fullscreenLayoutGroup:orientation:clickAssets:assetVisibility:popupPlacement:timeUpCSeconds:countdownSeconds:delaySeconds:pauseGameplay:showTCD:enableAdComeback:autoCapture:autoClosePopup:enablePopupCtrOverlay:enableClickOnBannerExpand:metaTestDevices:metaTestModeEnabled:metaTestDeviceCount:)"))) __attribute__((objc_designated_initializer));
 - (SharedAdsConsoleUiState *)applyCustomAdUnitId __attribute__((swift_name("applyCustomAdUnitId()")));
-- (SharedAdsConsoleUiState *)doCopySelectedFeature:(SharedAdsConsoleFeature *)selectedFeature environment:(SharedAdsConsoleEnvironment *)environment selectedAdUnitId:(NSString *)selectedAdUnitId customAdUnitId:(NSString *)customAdUnitId selectedLayoutName:(NSString *)selectedLayoutName fullscreenMode:(SharedFullscreenNativeAdMode *)fullscreenMode orientation:(SharedAdsConsoleOrientation *)orientation clickAssets:(SharedAdsConsoleClickAssetConfig *)clickAssets assetVisibility:(SharedAdsConsoleAssetVisibilityConfig *)assetVisibility popupPlacement:(SharedAdsConsolePopupPlacement *)popupPlacement timeUpCSeconds:(int32_t)timeUpCSeconds countdownSeconds:(int32_t)countdownSeconds delaySeconds:(int32_t)delaySeconds pauseGameplay:(BOOL)pauseGameplay showTCD:(BOOL)showTCD enableAdComeback:(BOOL)enableAdComeback autoCapture:(BOOL)autoCapture autoClosePopup:(BOOL)autoClosePopup enablePopupCtrOverlay:(BOOL)enablePopupCtrOverlay enableClickOnBannerExpand:(BOOL)enableClickOnBannerExpand metaTestDevices:(NSString *)metaTestDevices metaTestModeEnabled:(BOOL)metaTestModeEnabled metaTestDeviceCount:(int32_t)metaTestDeviceCount __attribute__((swift_name("doCopy(selectedFeature:environment:selectedAdUnitId:customAdUnitId:selectedLayoutName:fullscreenMode:orientation:clickAssets:assetVisibility:popupPlacement:timeUpCSeconds:countdownSeconds:delaySeconds:pauseGameplay:showTCD:enableAdComeback:autoCapture:autoClosePopup:enablePopupCtrOverlay:enableClickOnBannerExpand:metaTestDevices:metaTestModeEnabled:metaTestDeviceCount:)")));
+- (SharedAdsConsoleUiState *)doCopySelectedFeature:(SharedAdsConsoleFeature *)selectedFeature environment:(SharedAdsConsoleEnvironment *)environment selectedAdUnitId:(NSString *)selectedAdUnitId customAdUnitId:(NSString *)customAdUnitId selectedLayoutName:(NSString *)selectedLayoutName fullscreenMode:(SharedFullscreenNativeAdMode *)fullscreenMode fullscreenLayoutGroup:(SharedFullscreenConsoleLayoutGroup *)fullscreenLayoutGroup orientation:(SharedAdsConsoleOrientation *)orientation clickAssets:(SharedAdsConsoleClickAssetConfig *)clickAssets assetVisibility:(SharedAdsConsoleAssetVisibilityConfig *)assetVisibility popupPlacement:(SharedAdsConsolePopupPlacement *)popupPlacement timeUpCSeconds:(int32_t)timeUpCSeconds countdownSeconds:(int32_t)countdownSeconds delaySeconds:(int32_t)delaySeconds pauseGameplay:(BOOL)pauseGameplay showTCD:(BOOL)showTCD enableAdComeback:(BOOL)enableAdComeback autoCapture:(BOOL)autoCapture autoClosePopup:(BOOL)autoClosePopup enablePopupCtrOverlay:(BOOL)enablePopupCtrOverlay enableClickOnBannerExpand:(BOOL)enableClickOnBannerExpand metaTestDevices:(NSString *)metaTestDevices metaTestModeEnabled:(BOOL)metaTestModeEnabled metaTestDeviceCount:(int32_t)metaTestDeviceCount __attribute__((swift_name("doCopy(selectedFeature:environment:selectedAdUnitId:customAdUnitId:selectedLayoutName:fullscreenMode:fullscreenLayoutGroup:orientation:clickAssets:assetVisibility:popupPlacement:timeUpCSeconds:countdownSeconds:delaySeconds:pauseGameplay:showTCD:enableAdComeback:autoCapture:autoClosePopup:enablePopupCtrOverlay:enableClickOnBannerExpand:metaTestDevices:metaTestModeEnabled:metaTestDeviceCount:)")));
 - (BOOL)isEqual:(id _Nullable)other __attribute__((swift_name("isEqual(_:)")));
 - (NSUInteger)hash __attribute__((swift_name("hash()")));
 - (SharedAdsConsoleUiState *)selectFeatureFeature:(SharedAdsConsoleFeature *)feature __attribute__((swift_name("selectFeature(feature:)")));
+- (SharedAdsConsoleUiState *)selectFullscreenLayoutGroupGroup:(SharedFullscreenConsoleLayoutGroup *)group __attribute__((swift_name("selectFullscreenLayoutGroup(group:)")));
 - (SharedAdsConsoleUiState *)selectFullscreenModeMode:(SharedFullscreenNativeAdMode *)mode __attribute__((swift_name("selectFullscreenMode(mode:)")));
 - (SharedAdsConsoleUiState *)selectLayoutNameLayoutName:(NSString *)layoutName __attribute__((swift_name("selectLayoutName(layoutName:)")));
 - (SharedAdsConsoleStatus *)statusState:(SharedNativeAdState *)state responseId:(NSString *)responseId adUnitId:(NSString *)adUnitId layoutName:(NSString *)layoutName __attribute__((swift_name("status(state:responseId:adUnitId:layoutName:)")));
@@ -693,6 +744,7 @@ __attribute__((swift_name("AdsConsoleUiState")))
 @property (readonly) BOOL enableClickOnBannerExpand __attribute__((swift_name("enableClickOnBannerExpand")));
 @property (readonly) BOOL enablePopupCtrOverlay __attribute__((swift_name("enablePopupCtrOverlay")));
 @property (readonly) SharedAdsConsoleEnvironment *environment __attribute__((swift_name("environment")));
+@property (readonly) SharedFullscreenConsoleLayoutGroup *fullscreenLayoutGroup __attribute__((swift_name("fullscreenLayoutGroup")));
 @property (readonly) SharedFullscreenNativeAdMode *fullscreenMode __attribute__((swift_name("fullscreenMode")));
 @property (readonly) NSArray<NSString *> *layoutOptions __attribute__((swift_name("layoutOptions")));
 @property (readonly) int32_t metaTestDeviceCount __attribute__((swift_name("metaTestDeviceCount")));
@@ -723,6 +775,22 @@ __attribute__((swift_name("AdsConsoleViewport")))
 @end
 
 __attribute__((objc_subclassing_restricted))
+__attribute__((swift_name("FullscreenConsoleLayoutGroup")))
+@interface SharedFullscreenConsoleLayoutGroup : SharedKotlinEnum<SharedFullscreenConsoleLayoutGroup *>
++ (instancetype)alloc __attribute__((unavailable));
++ (instancetype)allocWithZone:(struct _NSZone *)zone __attribute__((unavailable));
+- (instancetype)initWithName:(NSString *)name ordinal:(int32_t)ordinal __attribute__((swift_name("init(name:ordinal:)"))) __attribute__((objc_designated_initializer)) __attribute__((unavailable));
+@property (class, readonly) SharedFullscreenConsoleLayoutGroup *universal __attribute__((swift_name("universal")));
+@property (class, readonly) SharedFullscreenConsoleLayoutGroup *cls __attribute__((swift_name("cls")));
+@property (class, readonly) SharedFullscreenConsoleLayoutGroup *nav __attribute__((swift_name("nav")));
+@property (class, readonly) SharedFullscreenConsoleLayoutGroup *prgs __attribute__((swift_name("prgs")));
+@property (class, readonly) SharedFullscreenConsoleLayoutGroup *prgso __attribute__((swift_name("prgso")));
+@property (class, readonly) SharedFullscreenConsoleLayoutGroup *loop __attribute__((swift_name("loop")));
++ (SharedKotlinArray<SharedFullscreenConsoleLayoutGroup *> *)values __attribute__((swift_name("values()")));
+@property (class, readonly) NSArray<SharedFullscreenConsoleLayoutGroup *> *entries __attribute__((swift_name("entries")));
+@end
+
+__attribute__((objc_subclassing_restricted))
 __attribute__((swift_name("FullscreenLayoutCatalog")))
 @interface SharedFullscreenLayoutCatalog : SharedBase
 + (instancetype)alloc __attribute__((unavailable));
@@ -734,6 +802,7 @@ __attribute__((swift_name("FullscreenLayoutCatalog")))
 - (NSString *)normalizeLayoutName:(NSString * _Nullable)layoutName __attribute__((swift_name("normalize(layoutName:)")));
 @property (readonly) NSArray<NSString *> *AarClsLayouts __attribute__((swift_name("AarClsLayouts")));
 @property (readonly) NSArray<NSString *> *AarFullscreenLayouts __attribute__((swift_name("AarFullscreenLayouts")));
+@property (readonly) NSArray<NSString *> *AarLoopLayouts __attribute__((swift_name("AarLoopLayouts")));
 @property (readonly) NSArray<NSString *> *AarNavLayouts __attribute__((swift_name("AarNavLayouts")));
 @property (readonly) NSArray<NSString *> *AarProgressClsLayouts __attribute__((swift_name("AarProgressClsLayouts")));
 @property (readonly) NSArray<NSString *> *AarProgressLayouts __attribute__((swift_name("AarProgressLayouts")));
@@ -741,12 +810,17 @@ __attribute__((swift_name("FullscreenLayoutCatalog")))
 @property (readonly) NSArray<NSString *> *AarSingleUniversalLayouts __attribute__((swift_name("AarSingleUniversalLayouts")));
 @property (readonly) NSArray<NSString *> *AllLayouts __attribute__((swift_name("AllLayouts")));
 @property (readonly) NSArray<NSString *> *AndroidXmlParityLayouts __attribute__((swift_name("AndroidXmlParityLayouts")));
+@property (readonly) NSString *LoopDefault __attribute__((swift_name("LoopDefault")));
 @property (readonly) NSString *MultipleDefault __attribute__((swift_name("MultipleDefault")));
 @property (readonly) NSString *Nav01 __attribute__((swift_name("Nav01")));
 @property (readonly) NSString *Nav02 __attribute__((swift_name("Nav02")));
 @property (readonly) NSString *Nav03 __attribute__((swift_name("Nav03")));
 @property (readonly) NSString *ProgressClsDefault __attribute__((swift_name("ProgressClsDefault")));
 @property (readonly) NSString *ProgressDefault __attribute__((swift_name("ProgressDefault")));
+@property (readonly) NSString *ProgressOnly01 __attribute__((swift_name("ProgressOnly01")));
+@property (readonly) NSString *ProgressOnly02 __attribute__((swift_name("ProgressOnly02")));
+@property (readonly) NSString *ProgressOnly03 __attribute__((swift_name("ProgressOnly03")));
+@property (readonly) NSString *ProgressOnly04 __attribute__((swift_name("ProgressOnly04")));
 @property (readonly) NSString *SequenceDefault __attribute__((swift_name("SequenceDefault")));
 @property (readonly) NSString *SingleCtr __attribute__((swift_name("SingleCtr")));
 @property (readonly) NSString *SingleCtrTransparent __attribute__((swift_name("SingleCtrTransparent")));
@@ -777,6 +851,7 @@ __attribute__((swift_name("FullscreenNativeAdCloseStyle")))
 @property (class, readonly) SharedFullscreenNativeAdCloseStyle *nav __attribute__((swift_name("nav")));
 @property (class, readonly) SharedFullscreenNativeAdCloseStyle *pgrs __attribute__((swift_name("pgrs")));
 @property (class, readonly) SharedFullscreenNativeAdCloseStyle *pgrsCls __attribute__((swift_name("pgrsCls")));
+@property (class, readonly) SharedFullscreenNativeAdCloseStyle *loop __attribute__((swift_name("loop")));
 + (SharedKotlinArray<SharedFullscreenNativeAdCloseStyle *> *)values __attribute__((swift_name("values()")));
 @property (class, readonly) NSArray<SharedFullscreenNativeAdCloseStyle *> *entries __attribute__((swift_name("entries")));
 @end
@@ -874,6 +949,7 @@ __attribute__((swift_name("FullscreenNativeAdMode")))
 @property (class, readonly) SharedFullscreenNativeAdMode *overlayNav __attribute__((swift_name("overlayNav")));
 @property (class, readonly) SharedFullscreenNativeAdMode *overlayPgrs __attribute__((swift_name("overlayPgrs")));
 @property (class, readonly) SharedFullscreenNativeAdMode *overlayPgrsCls __attribute__((swift_name("overlayPgrsCls")));
+@property (class, readonly) SharedFullscreenNativeAdMode *loop __attribute__((swift_name("loop")));
 + (SharedKotlinArray<SharedFullscreenNativeAdMode *> *)values __attribute__((swift_name("values()")));
 @property (class, readonly) NSArray<SharedFullscreenNativeAdMode *> *entries __attribute__((swift_name("entries")));
 @property (readonly) BOOL isBgLibraryOverlay __attribute__((swift_name("isBgLibraryOverlay")));
@@ -904,6 +980,12 @@ __attribute__((swift_name("FullscreenNativeAdRegistry")))
 - (BOOL)isReadyAlias:(NSString *)alias __attribute__((swift_name("isReady(alias:)")));
 - (NSString * _Nullable)loadedAdUnitIdAlias:(NSString *)alias __attribute__((swift_name("loadedAdUnitId(alias:)")));
 - (void)markLoadingAlias:(NSString *)alias __attribute__((swift_name("markLoading(alias:)")));
+
+/**
+ * Takes the loaded ad out of the ready state as soon as its screen is built, so a second show
+ * cannot reuse it. [notifyDisplayed] still runs once the ad is actually on screen.
+ */
+- (void)markShowingAlias:(NSString *)alias __attribute__((swift_name("markShowing(alias:)")));
 - (void)notifyClickedAlias:(NSString *)alias __attribute__((swift_name("notifyClicked(alias:)")));
 - (void)notifyClosedAlias:(NSString *)alias __attribute__((swift_name("notifyClosed(alias:)")));
 - (void)notifyDisplayedAlias:(NSString *)alias adUnitId:(NSString *)adUnitId layoutName:(NSString *)layoutName __attribute__((swift_name("notifyDisplayed(alias:adUnitId:layoutName:)")));
@@ -1058,11 +1140,16 @@ __attribute__((swift_name("FullscreenNativeAdLayoutCatalog")))
 @property (readonly) NSString *Cls09 __attribute__((swift_name("Cls09")));
 @property (readonly) NSString *Cls10 __attribute__((swift_name("Cls10")));
 @property (readonly) NSString *Cls11 __attribute__((swift_name("Cls11")));
+@property (readonly) NSString *Loop01 __attribute__((swift_name("Loop01")));
 @property (readonly) NSString *Nav01 __attribute__((swift_name("Nav01")));
 @property (readonly) NSString *Nav02 __attribute__((swift_name("Nav02")));
 @property (readonly) NSString *Nav03 __attribute__((swift_name("Nav03")));
 @property (readonly) NSString *Progress01 __attribute__((swift_name("Progress01")));
 @property (readonly) NSString *ProgressCls01 __attribute__((swift_name("ProgressCls01")));
+@property (readonly) NSString *ProgressOnly01 __attribute__((swift_name("ProgressOnly01")));
+@property (readonly) NSString *ProgressOnly02 __attribute__((swift_name("ProgressOnly02")));
+@property (readonly) NSString *ProgressOnly03 __attribute__((swift_name("ProgressOnly03")));
+@property (readonly) NSString *ProgressOnly04 __attribute__((swift_name("ProgressOnly04")));
 @property (readonly) NSString *Universal01 __attribute__((swift_name("Universal01")));
 @property (readonly) NSString *Universal02 __attribute__((swift_name("Universal02")));
 @property (readonly) NSString *Universal03 __attribute__((swift_name("Universal03")));
@@ -1077,6 +1164,7 @@ __attribute__((swift_name("FullscreenNativeAdLayoutCatalog")))
 @property (readonly) NSString *Universal12 __attribute__((swift_name("Universal12")));
 @property (readonly) NSArray<NSString *> *cls __attribute__((swift_name("cls")));
 @property (readonly) NSArray<NSString *> *firstClsLayouts __attribute__((swift_name("firstClsLayouts")));
+@property (readonly) NSArray<NSString *> *loop __attribute__((swift_name("loop")));
 @property (readonly) NSArray<NSString *> *nav __attribute__((swift_name("nav")));
 @property (readonly) NSArray<NSString *> *progress __attribute__((swift_name("progress")));
 @property (readonly) NSArray<NSString *> *progressCls __attribute__((swift_name("progressCls")));
@@ -1092,8 +1180,8 @@ __attribute__((swift_name("FullscreenNativeAdLayoutCatalog")))
 __attribute__((objc_subclassing_restricted))
 __attribute__((swift_name("FullscreenNativeAdState")))
 @interface SharedFullscreenNativeAdState : SharedBase
-- (instancetype)initWithHeadline:(NSString *)headline body:(NSString *)body advertiser:(NSString *)advertiser callToAction:(NSString *)callToAction countdownText:(NSString *)countdownText showCountdown:(BOOL)showCountdown showCloseButton:(BOOL)showCloseButton closeButtonEnabled:(BOOL)closeButtonEnabled closeButtonAlpha:(float)closeButtonAlpha closeStyle:(SharedFullscreenNativeAdCloseStyle *)closeStyle countdownProgress:(float)countdownProgress showProgress:(BOOL)showProgress showOpenStoreButton:(BOOL)showOpenStoreButton showHeadline:(BOOL)showHeadline showBody:(BOOL)showBody showAdvertiser:(BOOL)showAdvertiser showIcon:(BOOL)showIcon showCallToAction:(BOOL)showCallToAction showMedia:(BOOL)showMedia showAdChoices:(BOOL)showAdChoices usesNativeAssetTouchHandling:(BOOL)usesNativeAssetTouchHandling renderAdvertiserText:(BOOL)renderAdvertiserText __attribute__((swift_name("init(headline:body:advertiser:callToAction:countdownText:showCountdown:showCloseButton:closeButtonEnabled:closeButtonAlpha:closeStyle:countdownProgress:showProgress:showOpenStoreButton:showHeadline:showBody:showAdvertiser:showIcon:showCallToAction:showMedia:showAdChoices:usesNativeAssetTouchHandling:renderAdvertiserText:)"))) __attribute__((objc_designated_initializer));
-- (SharedFullscreenNativeAdState *)doCopyHeadline:(NSString *)headline body:(NSString *)body advertiser:(NSString *)advertiser callToAction:(NSString *)callToAction countdownText:(NSString *)countdownText showCountdown:(BOOL)showCountdown showCloseButton:(BOOL)showCloseButton closeButtonEnabled:(BOOL)closeButtonEnabled closeButtonAlpha:(float)closeButtonAlpha closeStyle:(SharedFullscreenNativeAdCloseStyle *)closeStyle countdownProgress:(float)countdownProgress showProgress:(BOOL)showProgress showOpenStoreButton:(BOOL)showOpenStoreButton showHeadline:(BOOL)showHeadline showBody:(BOOL)showBody showAdvertiser:(BOOL)showAdvertiser showIcon:(BOOL)showIcon showCallToAction:(BOOL)showCallToAction showMedia:(BOOL)showMedia showAdChoices:(BOOL)showAdChoices usesNativeAssetTouchHandling:(BOOL)usesNativeAssetTouchHandling renderAdvertiserText:(BOOL)renderAdvertiserText __attribute__((swift_name("doCopy(headline:body:advertiser:callToAction:countdownText:showCountdown:showCloseButton:closeButtonEnabled:closeButtonAlpha:closeStyle:countdownProgress:showProgress:showOpenStoreButton:showHeadline:showBody:showAdvertiser:showIcon:showCallToAction:showMedia:showAdChoices:usesNativeAssetTouchHandling:renderAdvertiserText:)")));
+- (instancetype)initWithHeadline:(NSString *)headline body:(NSString *)body advertiser:(NSString *)advertiser callToAction:(NSString *)callToAction countdownText:(NSString *)countdownText showCountdown:(BOOL)showCountdown showCloseButton:(BOOL)showCloseButton closeButtonEnabled:(BOOL)closeButtonEnabled closeButtonAlpha:(float)closeButtonAlpha closeStyle:(SharedFullscreenNativeAdCloseStyle *)closeStyle countdownProgress:(float)countdownProgress showProgress:(BOOL)showProgress showOpenStoreButton:(BOOL)showOpenStoreButton showHeadline:(BOOL)showHeadline showBody:(BOOL)showBody showAdvertiser:(BOOL)showAdvertiser showIcon:(BOOL)showIcon showCallToAction:(BOOL)showCallToAction showMedia:(BOOL)showMedia showAdChoices:(BOOL)showAdChoices usesNativeAssetTouchHandling:(BOOL)usesNativeAssetTouchHandling renderAdvertiserText:(BOOL)renderAdvertiserText showIconSlot:(BOOL)showIconSlot __attribute__((swift_name("init(headline:body:advertiser:callToAction:countdownText:showCountdown:showCloseButton:closeButtonEnabled:closeButtonAlpha:closeStyle:countdownProgress:showProgress:showOpenStoreButton:showHeadline:showBody:showAdvertiser:showIcon:showCallToAction:showMedia:showAdChoices:usesNativeAssetTouchHandling:renderAdvertiserText:showIconSlot:)"))) __attribute__((objc_designated_initializer));
+- (SharedFullscreenNativeAdState *)doCopyHeadline:(NSString *)headline body:(NSString *)body advertiser:(NSString *)advertiser callToAction:(NSString *)callToAction countdownText:(NSString *)countdownText showCountdown:(BOOL)showCountdown showCloseButton:(BOOL)showCloseButton closeButtonEnabled:(BOOL)closeButtonEnabled closeButtonAlpha:(float)closeButtonAlpha closeStyle:(SharedFullscreenNativeAdCloseStyle *)closeStyle countdownProgress:(float)countdownProgress showProgress:(BOOL)showProgress showOpenStoreButton:(BOOL)showOpenStoreButton showHeadline:(BOOL)showHeadline showBody:(BOOL)showBody showAdvertiser:(BOOL)showAdvertiser showIcon:(BOOL)showIcon showCallToAction:(BOOL)showCallToAction showMedia:(BOOL)showMedia showAdChoices:(BOOL)showAdChoices usesNativeAssetTouchHandling:(BOOL)usesNativeAssetTouchHandling renderAdvertiserText:(BOOL)renderAdvertiserText showIconSlot:(BOOL)showIconSlot __attribute__((swift_name("doCopy(headline:body:advertiser:callToAction:countdownText:showCountdown:showCloseButton:closeButtonEnabled:closeButtonAlpha:closeStyle:countdownProgress:showProgress:showOpenStoreButton:showHeadline:showBody:showAdvertiser:showIcon:showCallToAction:showMedia:showAdChoices:usesNativeAssetTouchHandling:renderAdvertiserText:showIconSlot:)")));
 - (BOOL)isEqual:(id _Nullable)other __attribute__((swift_name("isEqual(_:)")));
 - (NSUInteger)hash __attribute__((swift_name("hash()")));
 - (NSString *)description __attribute__((swift_name("description()")));
@@ -1117,6 +1205,9 @@ __attribute__((swift_name("FullscreenNativeAdState")))
 @property (readonly) BOOL showCountdown __attribute__((swift_name("showCountdown")));
 @property (readonly) BOOL showHeadline __attribute__((swift_name("showHeadline")));
 @property (readonly) BOOL showIcon __attribute__((swift_name("showIcon")));
+
+/** The icon frame stays (empty) when the ad has no icon image; only hiding the icon asset removes it. */
+@property (readonly) BOOL showIconSlot __attribute__((swift_name("showIconSlot")));
 @property (readonly) BOOL showMedia __attribute__((swift_name("showMedia")));
 @property (readonly) BOOL showOpenStoreButton __attribute__((swift_name("showOpenStoreButton")));
 @property (readonly) BOOL showProgress __attribute__((swift_name("showProgress")));

@@ -170,6 +170,7 @@ namespace BG_Library.NET.Mediation.IOS
 
 				if (ad is IOSFSNativeInstance iosAd)
 				{
+					iosAd.OnAdImpressionEvent += HandleImpression;
 					iosAd.OnAdShowFailedEvent += (adInfo, errorCode, errorMessage) =>
 					{
 						UnityMainThreadDispatcher.EnqueueCallback(() =>
@@ -185,6 +186,7 @@ namespace BG_Library.NET.Mediation.IOS
 
 				if (ad is IOSInterstitialInstance interstitialAd)
 				{
+					interstitialAd.OnAdImpressionEvent += HandleImpression;
 					interstitialAd.OnAdShowFailedEvent += (adInfo, errorCode, errorMessage) =>
 					{
 						UnityMainThreadDispatcher.EnqueueCallback(() =>
@@ -200,6 +202,18 @@ namespace BG_Library.NET.Mediation.IOS
 
 				NetFlowDebugSystem.Log(Layer.group, Module.fs_group, $"Attach.OK {core.GroupName}", () => $"id={idKey}");
 			}
+		}
+
+		private void HandleImpression(AdInfo adInfo)
+		{
+			UnityMainThreadDispatcher.EnqueueCallback(() =>
+			{
+				using (NetFlowDebugSystem.FlowNew(Layer.group, Module.ios_api_fs, $"CB.Impression {core.GroupName}",
+					       () => $"adtype={core.Adtype} id={idKey} adapter={SafeAdapter(adInfo)} source={adInfo?.adSource}"))
+				{
+					core.OnAdImpressionEvent(SafeAdapter(adInfo));
+				}
+			});
 		}
 
 		private IFSInstance CreateAdInstance()

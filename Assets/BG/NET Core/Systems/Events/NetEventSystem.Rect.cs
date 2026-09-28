@@ -12,6 +12,8 @@ namespace BG_Library.NET
         public static Action<AdInfo> OnRectDisplayed;
         public static Action<AdInfo> OnRectHidden;
         public static Action<AdInfo> OnRectClicked;
+        /// <summary>Ad SDK recorded the impression. Revenue tracking stays on <see cref="OnRectPaid"/>.</summary>
+        public static Action<AdInfo> OnRectImpression;
         public static Action<AdInfo, AdValueInfo> OnRectPaid;
     }
 }
